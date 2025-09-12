@@ -1,40 +1,75 @@
 <template>
-    <div class="login-page">
-        <div class="login-card">
-            <h1 class="login-title">Gestão Lanchonete</h1>
-            <p class="login-subtitle">Acesse sua conta</p>
-            <div class="form-group">
-                <label for="email" class="form-label">E-mail</label>
-                <input type="text" id="email" class="form-control" placeholder="nome">
-            </div>
-            <div class="form-group">
-                <label for="password" class="form-label">Senha</label>
-                <input type="password" id="password" class="form-control" placeholder="********">
-            </div>
-            <p v-if="error" class="error-message">E-mail ou senha incorretos.</p>
-            <RouterLink class="nav-link" to="/dashboard" active-class="active">
-                <button class="btn-login">Entrar</button>
-            </RouterLink>
-        </div>
+  <div class="login-page">
+    <div class="login-card">
+      <h1 class="login-title">Gestão Lanchonete</h1>
+      <p class="login-subtitle">Acesse sua conta</p>
+      <div class="form-group">
+        <label for="username" class="form-label">Usuário</label>
+        <input type="text" id="username" v-model="username" class="form-control" placeholder="nome">
+      </div>
+      <div class="form-group">
+        <label for="password" class="form-label">Senha</label>
+        <input type="password" id="password" v-model="password" class="form-control" placeholder="********">
+      </div>
+      <p v-if="error" class="error-message">Usuário ou senha incorretos.</p>
+      <button @click="handleLogin" class="btn-login" :disabled="loading">
+        {{ loading ? 'Carregando...' : 'Entrar' }}
+      </button>
     </div>
+  </div>
 </template>
 
-<script>
-export default {
-    data() {
-        return {
-            error: false,
-        };
-    },
-    methods: {
-        // Você pode adicionar a sua lógica de autenticação aqui.
-        // Por exemplo:
-        // login() {
-        //     // Lógica para chamar a API de login
-        //     // Se o login falhar:
-        //     // this.error = true;
-        // }
-    },
+
+<script setup>
+import { ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from './stores/auth'; 
+
+const router = useRouter();
+const authStore = useAuthStore(); // Inicialize a store
+
+const username = ref('gerente');
+const password = ref('senha123');
+const error = ref(false);
+const loading = ref(false);
+
+const handleLogin = async () => {
+  loading.value = true;
+  error.value = false;
+
+  const loginUrl = 'https://localhost:7298/api/Auth/login';
+
+  try {
+    const response = await fetch(loginUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        username: username.value,
+        senha: password.value,
+      }),
+    });
+
+    if (!response.ok) {
+      error.value = true;
+      throw new Error('Falha no login');
+    }
+
+    const data = await response.json();
+
+    // Armazena o token e atualiza o estado de autenticação
+    authStore.setToken(data.token);
+    authStore.setAuthenticated(true);
+
+    // Navega para o dashboard após o login 
+    router.push({ name: 'dashboard' });
+
+  } catch (err) {
+    console.error('Erro de login:', err);
+  } finally {
+    loading.value = false;
+  }
 };
 </script>
 

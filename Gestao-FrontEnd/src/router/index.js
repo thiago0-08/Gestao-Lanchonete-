@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '../stores/auth';
 import dashboard from '../views/Dashboard.vue'
 import pedidos from '../views/Pedidos.vue'
 import estoque from '../views/Estoque.vue'
@@ -8,6 +9,12 @@ import relatorio from '../views/Relatorio.vue'
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    {
+      path: '/',
+      name: 'login',
+      component: () => import('../Login.vue'),
+      meta: { requiresAuth: false }
+    },
     {
       path: '/Dashboard',
       name: 'dashboard',
@@ -38,27 +45,17 @@ const router = createRouter({
       component: () => import('../views/Relatorio.vue'),
       meta: { requiresAuth: true }
     },
-     {
-      path: '/',
-      name: 'login',
-      component: () => import('../Login.vue'),
-      meta: { requiresAuth: false }
-    },
+     
 
   ],
 });
 
 router.beforeEach((to, from, next) => {
-  // Lógica de verificação de autenticação:
-  // Substitua a linha abaixo pela sua lógica real. Por exemplo, verifique se há um token de login no localStorage.
-  const isAuthenticated = false; // Mude para true quando o usuário estiver logado.
+  const authStore = useAuthStore(); // Inicialize a store
 
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    // Se a rota requer autenticação e o usuário não está logado,
-    // redireciona para a tela de login.
-    next({ name: 'Login' });
+  if (to.meta.requiresAuth && !authStore.isAuthenticated) {
+    next({ name: 'login' });
   } else {
-    // Caso contrário, continua a navegação.
     next();
   }
 });

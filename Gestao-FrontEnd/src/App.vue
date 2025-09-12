@@ -1,17 +1,19 @@
 <template>
   <div id="app">
-    <!-- O componente NavBar só é renderizado se a rota atual não for a de Login -->
     <NavBar v-if="$route.name !== 'Login'" />
     <RouterView />
   </div>
 </template>
 
 <script>
-import NavBar from '@/components/NavBar.vue';
+import NavBar from './components/NavBar.vue';
+import { RouterView } from 'vue-router';
+
 
 export default {
   components: {
     NavBar,
-  }
+    RouterView,
+  },
 };
 </script>
