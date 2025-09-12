@@ -9,7 +9,7 @@
 
         <nav class="sidebar-nav">
             <ul>
-                <RouterLink class="nav-link" to="/" active-class="active">
+                <RouterLink class="nav-link" to="/dashboard" active-class="active">
                     <li>
                         <i class="fas fa-tachometer-alt"></i>
                         <span>Dashboard</span>
@@ -41,6 +41,12 @@
                     <li>
                         <i class="fas fa-chart-bar"></i>
                         <span>Relatório</span>
+                    </li>
+                </RouterLink>
+                 <RouterLink class="nav-link" to="/" active-class="active">
+                    <li>
+                        <i class="fa-solid fa-right-from-bracket"></i>
+                        <span>Sair</span>
                     </li>
                 </RouterLink>
             </ul>
