@@ -12,56 +12,77 @@
             <form @submit.prevent="submitTicket">
                 <div class="form-group">
                     <label for="cliente">Nome do Produto:</label>
-                    <input type="text" id="cliente" placeholder="Batata, Tomate, Cebola" required>
+                    <input type="text" id="produto" v-model="produtoId" placeholder="Batata, Tomate, Cebola" required>
                 </div>
 
                 <div class="form-group">
                     <label for="data-pedido">Quantidade</label>
-                    <input type="number" id="quantidade" placeholder="Ex: 5"  step="0.01" required>
+                    <input type="number" id="quantidade" v-model="quantidade" placeholder="Ex: 5"  step="0.01" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="itens">Valor do produto por Unidade</label>
-                    <input type="number" id="itens" placeholder="Ex: 10.50" step="0.01" required>
-                </div>
-                <div class="form-group">
-                    <label for="data-pedido">Data de Entrada:</label>
-                    <input type="date" id="data-entrada" required>
-                </div>
-                <div class="form-group">
-                    <label for="data-pedido">Data de Validade:</label>
-                    <input type="date" id="data-validade" required>
+                    <label for="itens">Unidade </label>
+                    <input type="number" id="itens" v-model="unidadeMedida"  placeholder="Ex: 10.50" step="0.01" required>
                 </div>
 
-                
-                
                 <button type="submit" class="btn-enviar">Enviar</button>
             </form>
         </div>
     </div>
 </template>
 
-<script>
-export default {
-    data() {
-        return {
-            message: '', // mensagem de sucesso
-        };
-    },
-    methods: {
-        async submitTicket() {
-            
-            //   exibe a mensagem sucesso apos clica em envia
-            this.message = 'Entrada do Produto feita com sucesso!';
-            
-            //  temporizador para limpar a mensagem após 3 segundos
-            setTimeout(() => {
-                this.message = '';
-                this.$emit('close'); //  fechar o modal após o sucesso
-            }, 3000);
-        },
-    }
-};
+
+
+<script setup>
+import { ref, onMounted } from 'vue';
+import { entradaSaidaEstoque } from '../../stores/EntradaSaidaEstoque.js';
+
+
+const produtoId = ref('');
+const quantidade = ref(0);
+const unidadeMedida = ref(0);
+const message = ref('');
+
+
+const store = entradaSaidaEstoque();
+
+
+async function submitTicket() {
+ 
+  const payload = {
+    produtoId: produtoId.value,
+    quantidade: quantidade.value,
+    unidadeMedida: unidadeMedida.value,
+    tipo: 'entrada'
+  };
+
+  try {
+    
+    await store.addEntradaSaida(payload);
+
+    
+    message.value = 'Entrada do Produto feita com sucesso!';
+    
+    
+    produtoId.value = '';
+    quantidade.value = 0;
+    unidadeMedida.value = 0;
+
+    
+    setTimeout(() => {
+      message.value = '';
+      emit('close'); 
+    }, 3000);
+
+  } catch (error) {
+    
+    message.value = 'Erro ao fazer a entrada do produto.';
+    console.error('Erro:', error);
+  }
+}
+
+
+const emit = defineEmits(['close']);
 </script>
 
 <style scoped>
@@ -166,7 +187,7 @@ export default {
     padding: 15px;
     margin-bottom: 20px;
     background-color: #d4edda;
-    color: #155724;
+    color: #e65c00;
     border: 1px solid #c3e6cb;
     border-radius: 4px;
     font-weight: bold;
