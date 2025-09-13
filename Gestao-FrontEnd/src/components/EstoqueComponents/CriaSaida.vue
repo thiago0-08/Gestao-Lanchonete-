@@ -12,12 +12,12 @@
             <form @submit.prevent="submitTicket">
                 <div class="form-group">
                     <label for="cliente">Nome do produto:</label>
-                    <input type="text" id="cliente" placeholder="Ex: Hambúrguer" required>
+                    <input type="text" id="cliente" placeholder="Ex: Hambúrguer" v-model="produtoId" required>
                 </div>
 
                 <div class="form-group">
                     <label for="data-pedido">Quantidade de saida</label>
-                    <input type="number" id="quantidade-saida " placeholder="Ex: 5" step="0.01" required>
+                    <input type="number" id="quantidade-saida" v-model="quantidade" placeholder="Ex: 5" step="0.01" required>
                 </div>
 
                 
@@ -28,27 +28,53 @@
     </div>
 </template>
 
-<script>
-export default {
-    data() {
-        return {
-            message: '', // mensagem de sucesso
-        };
-    },
-    methods: {
-        async submitTicket() {
-            
-            //   exibe a mensagem sucesso apos clica em envia
-            this.message = 'Pedido criado com sucesso!';
-            
-            //  temporizador para limpar a mensagem após 3 segundos
-            setTimeout(() => {
-                this.message = '';
-                this.$emit('close'); //  fechar o modal após o sucesso
-            }, 3000);
-        },
-    }
-};
+<script setup>
+import { ref, onMounted } from 'vue';
+import { entradaSaidaEstoque } from '../../stores/EntradaSaidaEstoque.js';
+
+
+const produtoId = ref('');
+const quantidade = ref(0);
+const message = ref('');
+
+
+const store = entradaSaidaEstoque();
+
+
+async function submitTicket() {
+ 
+  const payload = {
+    produtoId: produtoId.value,
+    quantidade: quantidade.value,
+    tipo: 'saida'
+  };
+
+  try {
+    
+    await store.addEntradaSaida(payload);
+
+    
+    message.value = 'Saida do Produto feita com sucesso!';
+    
+    
+    produtoId.value = '';
+    quantidade.value = 0;
+
+    
+    setTimeout(() => {
+      message.value = '';
+      emit('close'); 
+    }, 3000);
+
+  } catch (error) {
+    
+    message.value = 'Erro ao fazer a saida do produto.';
+    console.error('Erro:', error);
+  }
+}
+
+
+const emit = defineEmits(['close']);
 </script>
 
 <style scoped>
@@ -153,7 +179,7 @@ export default {
     padding: 15px;
     margin-bottom: 20px;
     background-color: #d4edda;
-    color: #155724;
+    color: #e65c00;
     border: 1px solid #c3e6cb;
     border-radius: 4px;
     font-weight: bold;
