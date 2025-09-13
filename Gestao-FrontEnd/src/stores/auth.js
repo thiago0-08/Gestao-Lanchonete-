@@ -21,8 +21,17 @@ export const useAuthStore = defineStore('auth', () => {
   function logout() {
     isAuthenticated.value = false;
     token.value = null;
-    username.value = null; // <-- Limpa o nome ao fazer logout
+    username.value = null; 
   }
 
-  return { isAuthenticated, token, username, setAuthenticated, setToken, setUsername, logout }; // <-- Atualizado
+  return { isAuthenticated, token, username, setAuthenticated, setToken, setUsername, logout }; 
 });
+
+export const aletaEstoque = defineStore('alertaEstoque', () => {
+  const alertaEstoque = ref(false);
+  function setAlertaEstoque(value) {
+    alertaEstoque.value = value;
+  }
+  return { alertaEstoque, setAlertaEstoque };
+});
+
