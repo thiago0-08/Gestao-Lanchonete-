@@ -2,12 +2,10 @@
     <div class="container">
         <h1>Controle de Estoque</h1>
         <div class="box dashboard-card">
-            
-            <button class="btn-entrada" @click="showcriaNovaEntrada = true"> Registrar Entrada </button>
-            <button class="btn-saida" @click="showcriaNovaSaida = true"> Registrar Saída</button>
+            <button class="btn-entrada" @click="showcriaNovaEntrada = true">Registrar Entrada</button>
+            <button class="btn-saida" @click="showcriaNovaSaida = true">Registrar Saída</button>
         </div>
 
-        <!-- Modais de controle de estoque -->
         <div v-if="showcriaNovaEntrada">
             <CriaEntrada @close="showcriaNovaEntrada = false" />
         </div>
@@ -16,91 +14,72 @@
             <CriaSaida @close="showcriaNovaSaida = false" />
         </div>
 
-        
-
         <div class="box2 dashboard-card">
             <table>
                 <thead>
                     <tr>
-                        <th>Ingrediente</th>
-                        <th>Unidade</th>
-                        <th>Estoque Atual</th>
+                        <th>ID</th>
+                        <th>Nome</th>
+                        <th>Unidade de Medida</th>
+                        <th>Quantidade em Estoque</th>
                         <th>Estoque Mínimo</th>
+                        <th>Custo Médio</th>
+                        <th>Fornecedor Padrão</th>
+                        <th>Data de Validade Próxima</th>
+                        <th>Data da Última Atualização</th>
                         <th>Status</th>
                         <th>Ações</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>Pão</td>
-                        <td>Unidades</td>
-                        <td>5</td>
-                        <td>20</td>
-                        <td><span class="status-badge critico">Crítico</span></td>
-                        <td class="acoes">
-                            <button class="btn-editar"><i class="fas fa-pencil-alt"></i></button>
-                            <button class="btn-excluir"><i class="fas fa-trash-alt"></i></button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>Queijo</td>
-                        <td>kg</td>
-                        <td>12</td>
-                        <td>5</td>
-                        <td><span class="status-badge normal">Normal</span></td>
-                        <td class="acoes">
-                            <button class="btn-editar"><i class="fas fa-pencil-alt"></i></button>
-                            <button class="btn-excluir"><i class="fas fa-trash-alt"></i></button>
-                        </td>
-                    </tr>
-
-
-                    <!---- <tr>  v-for="item in estoque" :key="item.id"> 
-                        <td> Pão </td> {{ item.ingrediente }}</td> 
-                        <td> Unidades </td>
-                        <td> 5 </td> {{ item.quantidade }}</td> 
-                        <td> 20 </td> {{ item.unidade }}</td> 
-                        <td> Critico </td>
+                    <tr v-for="item in estoque" :key="item.id">
+                        <td>{{ item.id }}</td>
+                        <td>{{ item.nome }}</td>
+                        <td>{{ item.unidadeMedida }}</td>
+                        <td>{{ item.quantidadeEstoque }}</td>
+                        <td>{{ item.estoqueMinimo }}</td>
+                        <td>R$ {{ item.custoMedio.toFixed(2) }}</td>
+                        <td>{{ item.fornecedorPadrao }}</td>
+                        <td>{{ new Date(item.dataValidadeProxima).toLocaleDateString() }}</td>
+                        <td>{{ new Date(item.dataUltimaAtualizacao).toLocaleDateString() }}</td>
                         <td>
+                            <span
+                                :class="['status-badge', { 'critico': item.quantidadeEstoque < item.estoqueMinimo, 'normal': item.quantidadeEstoque >= item.estoqueMinimo }]">
+                                {{ item.quantidadeEstoque < item.estoqueMinimo ? 'Crítico' : 'Normal' }} </span>
+                        </td>
+                        <td class="acoes">
                             <button class="btn-editar"><i class="fas fa-pencil-alt"></i></button>
                             <button class="btn-excluir"><i class="fas fa-trash-alt"></i></button>
-                            <button @click="editarItem(item.id)"> Editar </button>
-                        <button @click="deletarItem(item.id)"> Deletar </button> 
                         </td>
-                    </tr> -->
-
-
-
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
 </template>
 
-
-<script>
-
-
+<script setup>
+import { ref, onMounted } from 'vue';
 import CriaSaida from '@/components/EstoqueComponents/CriaSaida.vue';
 import CriaEntrada from '@/components/EstoqueComponents/CriaEntrada.vue';
+import { Ingrediente } from '@/stores/ingredientes';
 
-export default {
-    components: {
-        CriaEntrada,
-        CriaSaida,
-    },
 
-    data() {
-        return {
-            showcriaNovaSaida: false,
-            showcriaNovaEntrada: false,
-        };
-    },
+const ingredienteStore = Ingrediente();
 
-};
+const ingredientes = ref([]);
+
+//  exibição dos modais
+const showcriaNovaSaida = ref(false);
+const showcriaNovaEntrada = ref(false);
+
+
+onMounted(async () => {
+    await ingredienteStore.fetchIngredientes();
+    ingredientes.value = ingredienteStore.ingredientes;
+});
 
 </script>
-
 
 <style scoped>
 .container {
@@ -172,8 +151,6 @@ button {
     transition: all 0.3s ease;
     font-weight: 500;
 }
-
-
 
 .btn-entrada {
     background-color: #28a745;
