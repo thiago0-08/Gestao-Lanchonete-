@@ -38,7 +38,12 @@
                 </div>
                 <div class="info-content">
                     <h3>Alerta Estoque</h3>
-                    <p>3</p>
+                    <div class="tooltip-wrapper" @mouseenter="showTooltip" @mouseleave="hideTooltip">
+                        <p>{{ store.quantidade }}</p>
+                        <div v-if="isTooltipVisible" class="tooltip-message">
+                            <p>{{ store.mensagem }}</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -103,14 +108,28 @@
     </div>
 </template>
 
-<script>
+<script setup>
+import { onMounted, ref } from 'vue';
 import Ultimos7dias from '@/components/graficos/Ultimos7dias.vue';
+import { aletaEstoque } from '../stores/alertaEstoque';
 
-export default {
-    components: {
-        Ultimos7dias
-    }
-}
+const store = aletaEstoque();
+
+onMounted(() => {
+    store.fetchAlertaEstoque();
+});
+
+const isTooltipVisible = ref(false);
+
+// Função para mostrar o tooltip
+const showTooltip = () => {
+    isTooltipVisible.value = true;
+};
+
+// Função para esconder o tooltip
+const hideTooltip = () => {
+    isTooltipVisible.value = false;
+};
 </script>
 
 <style scoped>
@@ -155,10 +174,22 @@ h2 {
     font-size: 20px;
     color: #fff;
 }
-.icone.green { background-color: #28a745; }
-.icone.blue { background-color: #007bff; }
-.icone.orange { background-color: #ffc107; }
-.icone.red { background-color: #dc3545; }
+
+.icone.green {
+    background-color: #28a745;
+}
+
+.icone.blue {
+    background-color: #007bff;
+}
+
+.icone.orange {
+    background-color: #ffc107;
+}
+
+.icone.red {
+    background-color: #dc3545;
+}
 
 
 .info-content {
@@ -200,6 +231,7 @@ h2 {
     height: 350px;
     width: 650px;
 }
+
 .table-card {
     height: 350px;
     width: 650px;
@@ -229,9 +261,35 @@ tbody tr:nth-child(even) {
     background-color: #f9f9f9;
 }
 
-.alert-table th, .alert-table td {
+.alert-table th,
+.alert-table td {
     border: 1px solid #050505;
 }
 
 
+
+
+
+.tooltip-wrapper {
+    position: relative; 
+    display: inline-block; 
+    cursor: pointer;
+}
+
+.tooltip-message {
+    position: absolute;
+    bottom: calc(100% + 5px); 
+    left: 50%; 
+    transform: translateX(-50%); 
+    background-color: #ff0000;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 4px;
+    width: 200px; 
+    max-width: 250px; 
+    text-align: center; 
+    z-index: 10;
+    font-family: sans-serif;
+    font-size: 14px;
+}
 </style>
