@@ -58,11 +58,27 @@
                     <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRhl_zjFSX6iLpLMk8U65vEA_jY6gzFhC9FbA&s"
                         alt="Avatar do Usuário" />
                 </div>
-                <span class="user-name">Usuário</span>
+                <span class="user-name">{{ authStore.username }}</span>
             </div>
         </div>
     </aside>
 </template>
+
+
+
+<script setup> 
+
+import { useAuthStore } from '../stores/auth';
+import { useRouter } from 'vue-router';
+
+const authStore = useAuthStore();
+const router = useRouter();
+
+const logout = () => {
+  authStore.logout();
+  router.push({ name: 'login' });
+};
+</script>
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700;800;900&display=swap');

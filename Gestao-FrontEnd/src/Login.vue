@@ -26,10 +26,10 @@ import { useRouter } from 'vue-router';
 import { useAuthStore } from './stores/auth'; 
 
 const router = useRouter();
-const authStore = useAuthStore(); // Inicialize a store
+const authStore = useAuthStore(); 
 
-const username = ref('gerente');
-const password = ref('senha123');
+const username = ref('');
+const password = ref('');
 const error = ref(false);
 const loading = ref(false);
 
@@ -58,8 +58,9 @@ const handleLogin = async () => {
 
     const data = await response.json();
 
-    // Armazena o token e atualiza o estado de autenticação
+  
     authStore.setToken(data.token);
+    authStore.setUsername(data.username); 
     authStore.setAuthenticated(true);
 
     // Navega para o dashboard após o login 
