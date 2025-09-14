@@ -1,26 +1,38 @@
 <template>
     <div class="modal-overlay" @click.self="$emit('close')">
         <div class="modal-container">
-            <h2 class="titulo">Saida de Produto</h2>
+            <h2 class="titulo">Saída de Produto</h2>
             <button class="btn-fechar" @click="$emit('close')">X</button>
 
-            <!-- Mensagem de sucesso -->
             <div v-if="message" class="success-message">
                 {{ message }}
             </div>
 
             <form @submit.prevent="submitTicket">
                 <div class="form-group">
-                    <label for="cliente">Nome do produto:</label>
-                    <input type="text" id="cliente" placeholder="Ex: Hambúrguer" v-model="produtoId" required>
+                    <label for="produto">Nome do Produto:</label>
+                    <input 
+                        type="text" 
+                        id="produto" 
+                        v-model="produtoNome" 
+                        @input="filterProdutos"
+                        placeholder="Ex: Hambúrguer" 
+                        required>
+                    
+                    <ul v-if="filteredProdutos.length > 0 && produtoNome.length > 0" class="suggestions">
+                        <li 
+                            v-for="item in filteredProdutos" 
+                            :key="item.id" 
+                            @click="selectProduto(item)">
+                            {{ item.nome }}
+                        </li>
+                    </ul>
                 </div>
 
                 <div class="form-group">
-                    <label for="data-pedido">Quantidade de saida</label>
-                    <input type="number" id="quantidade-saida" v-model="quantidade" placeholder="Ex: 5" step="0.01" required>
+                    <label for="quantidade-saida">Quantidade de saída ({{ selectedProduto?.unidadeMedida || 'Unidade' }})</label>
+                    <input type="number" id="quantidade-saida" v-model.number="quantidade" placeholder="Ex: 5" step="0.01" required>
                 </div>
-
-                
                 
                 <button type="submit" class="btn-enviar">Enviar</button>
             </form>
@@ -31,53 +43,72 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { entradaSaidaEstoque } from '../../stores/EntradaSaidaEstoque.js';
+import { Ingrediente } from '@/stores/ingredientes';
 
+const entradaSaidaStore = entradaSaidaEstoque();
+const ingredienteStore = Ingrediente();
 
-const produtoId = ref('');
+const produtoNome = ref('');
 const quantidade = ref(0);
 const message = ref('');
 
+const ingredientes = ref([]);
+const filteredProdutos = ref([]);
+const selectedProduto = ref(null);
 
-const store = entradaSaidaEstoque();
+onMounted(async () => {
+  await ingredienteStore.fetchIngredientes();
+  ingredientes.value = ingredienteStore.ingredientes;
+});
 
+const filterProdutos = () => {
+    if (produtoNome.value.length > 0) {
+        filteredProdutos.value = ingredientes.value.filter(ing =>
+            ing.nome.toLowerCase().includes(produtoNome.value.toLowerCase())
+        );
+    } else {
+        filteredProdutos.value = [];
+    }
+    selectedProduto.value = null;
+};
 
-async function submitTicket() {
- 
-  const payload = {
-    produtoId: produtoId.value,
-    quantidade: quantidade.value,
-    tipo: 'saida'
-  };
+const selectProduto = (item) => {
+    produtoNome.value = item.nome;
+    selectedProduto.value = item;
+    filteredProdutos.value = [];
+};
 
-  try {
-    
-    await store.addEntradaSaida(payload);
+const submitTicket = async () => {
+    if (!selectedProduto.value) {
+        message.value = 'Por favor, selecione um produto da lista de sugestões.';
+        return;
+    }
 
-    
-    message.value = 'Saida do Produto feita com sucesso!';
-    
-    
-    produtoId.value = '';
-    quantidade.value = 0;
+    const payload = {
+        produtoId: selectedProduto.value.id,
+        quantidade: quantidade.value,
+        unidadeMedida: selectedProduto.value.unidadeMedida,
+        tipo: 'saida'
+    };
 
-    
-    setTimeout(() => {
-      message.value = '';
-      emit('close'); 
-    }, 3000);
-
-  } catch (error) {
-    
-    message.value = 'Erro ao fazer a saida do produto.';
-    console.error('Erro:', error);
-  }
-}
-
+    try {
+        await entradaSaidaStore.addEntradaSaida(payload);
+        message.value = 'Saída do Produto feita com sucesso!';
+        produtoNome.value = '';
+        quantidade.value = 0;
+        selectedProduto.value = null;
+    } catch (error) {
+        message.value = 'Erro ao fazer a saída do produto.';
+        console.error('Erro:', error);
+    }
+};
 
 const emit = defineEmits(['close']);
 </script>
 
 <style scoped>
+
+
 /* Fundo escuro do modal */
 .modal-overlay {
     position: fixed;
@@ -184,4 +215,32 @@ const emit = defineEmits(['close']);
     border-radius: 4px;
     font-weight: bold;
 }
+
+
+
+/* Adicione estilos para a lista de sugestões */
+.suggestions {
+    list-style-type: none;
+    padding: 0;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    max-height: 150px;
+    overflow-y: auto;
+    background-color: #fff;
+    z-index: 1001;
+}
+
+.suggestions li {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+
+.suggestions li:hover {
+    background-color: #f0f0f0;
+}
+
+
+
 </style>

@@ -23,10 +23,10 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useAuthStore } from './stores/auth'; 
+import { useAuthStore } from './stores/auth';
 
 const router = useRouter();
-const authStore = useAuthStore(); 
+const authStore = useAuthStore();
 
 const username = ref('');
 const password = ref('');
@@ -37,7 +37,7 @@ const handleLogin = async () => {
   loading.value = true;
   error.value = false;
 
-  const loginUrl = 'https://localhost:7298/api/Auth/login';
+  const loginUrl = 'http://localhost:5138/api/Auth/login';
 
   try {
     const response = await fetch(loginUrl, {
@@ -57,13 +57,16 @@ const handleLogin = async () => {
     }
 
     const data = await response.json();
-
-  
+    
+    // Salva o token na store Pinia e no localStorage
     authStore.setToken(data.token);
-    authStore.setUsername(data.username); 
+    // Adicione a linha abaixo para salvar o token.
+    localStorage.setItem('authToken', data.token);
+
+    authStore.setUsername(data.username);
     authStore.setAuthenticated(true);
 
-    // Navega para o dashboard após o login 
+    // Navega para o dashboard após o login
     router.push({ name: 'dashboard' });
 
   } catch (err) {

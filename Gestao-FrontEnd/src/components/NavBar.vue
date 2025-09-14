@@ -11,6 +11,7 @@
             <ul>
                 <RouterLink class="nav-link" to="/dashboard" active-class="active">
                     <li>
+                        
                         <i class="fas fa-tachometer-alt"></i>
                         <span>Dashboard</span>
                     </li>

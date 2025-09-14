@@ -4,30 +4,39 @@
             <h2 class="titulo">Criar Novo Pedido</h2>
             <button class="btn-fechar" @click="$emit('close')">X</button>
 
-            <!-- Mensagem de sucesso -->
-            <div v-if="message" class="success-message">
+            <div v-if="message" :class="['message', messageType]">
                 {{ message }}
             </div>
 
-            <form @submit.prevent="submitTicket">
+            <form @submit.prevent="submitPedido">
                 <div class="form-group">
                     <label for="cliente">Nome do Cliente:</label>
-                    <input type="text" id="cliente" placeholder="Nome do Cliente">
+                    <input type="text" id="cliente" v-model="cliente" placeholder="Nome do Cliente" required>
                 </div>
 
                 <div class="form-group">
                     <label for="data-pedido">Data do Pedido:</label>
-                    <input type="date" id="data-pedido">
+                    <input type="date" id="data-pedido" v-model="dataPedido" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="itens">Itens do Pedido:</label>
-                    <input type="text" id="itens" placeholder="Ex: Hambúrguer, Coca-Cola">
+                    <label for="total">Valor Total:</label>
+                    <input type="number" id="total" v-model.number="total" placeholder="Ex: 50.00" step="0.01" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="status">Status:</label>
+                    <select id="status" v-model="status" required>
+                        <option disabled value="">Selecione um status</option>
+                        <option value="Pendente">Pendente</option>
+                        <option value="Em Andamento">Em Andamento</option>
+                        <option value="Concluido">Concluído</option>
+                    </select>
                 </div>
 
                 <div class="form-group">
                     <label for="observacoes">Observações:</label>
-                    <textarea id="observacoes" rows="3" placeholder="Adicione observações adicionais"></textarea>
+                    <textarea id="observacoes" v-model="observacoes" rows="3" placeholder="Adicione observações adicionais"></textarea>
                 </div>
                 
                 <button type="submit" class="btn-enviar">Enviar</button>
@@ -36,27 +45,58 @@
     </div>
 </template>
 
-<script>
-export default {
-    data() {
-        return {
-            message: '', // mensagem de sucesso
-        };
-    },
-    methods: {
-        async submitTicket() {
-            
-            //   exibe a mensagem sucesso apos clica em envia
-            this.message = 'Pedido criado com sucesso!';
-            
-            //  temporizador para limpar a mensagem após 3 segundos
-            setTimeout(() => {
-                this.message = '';
-                this.$emit('close'); //  fechar o modal após o sucesso
-            }, 3000);
-        },
+<script setup>
+import { ref } from 'vue';
+import { usePedidosStore } from '@/stores/pedidos';
+
+const emit = defineEmits(['close']);
+
+// Instância da store Pinia
+const pedidosStore = usePedidosStore();
+
+// Variáveis reativas para os campos do formulário
+const cliente = ref('');
+const dataPedido = ref('');
+const observacoes = ref('');
+const total = ref(0);
+const status = ref('');
+
+// Mensagens de feedback para o usuário
+const message = ref('');
+const messageType = ref('');
+
+// Função para enviar o pedido
+async function submitPedido() {
+    const payload = {
+        cliente: cliente.value,
+        data: dataPedido.value,
+        total: total.value,
+        status: status.value,
+        observacoes: observacoes.value
+        // Os nomes das propriedades devem coincidir com o DTO da sua API!
+    };
+
+    try {
+        await pedidosStore.addPedido(payload);
+        message.value = 'Pedido criado com sucesso!';
+        messageType.value = 'success';
+
+        // Limpa o formulário após o sucesso
+        cliente.value = '';
+        dataPedido.value = '';
+        observacoes.value = '';
+        total.value = 0;
+        status.value = '';
+
+        setTimeout(() => {
+            emit('close');
+        }, 3000);
+    } catch (error) {
+        message.value = 'Erro ao criar o pedido. Por favor, tente novamente.';
+        messageType.value = 'error';
+        console.error('Erro ao enviar pedido:', error);
     }
-};
+}
 </script>
 
 <style scoped>
@@ -120,7 +160,8 @@ export default {
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
     width: 100%;
     padding: 10px;
     border: 1px solid #ccc;
@@ -131,7 +172,8 @@ export default {
 }
 
 .form-group input:focus,
-.form-group textarea:focus {
+.form-group textarea:focus,
+.form-group select:focus {
     border-color: #ff7200;
     box-shadow: 0 0 5px rgba(255, 114, 0, 0.5);
     outline: none;
@@ -156,14 +198,22 @@ export default {
 }
 
 /* Estilo da mensagem de sucesso */
-.success-message {
+.message {
     text-align: center;
     padding: 15px;
     margin-bottom: 20px;
-    background-color: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+    border: 1px solid;
     border-radius: 4px;
     font-weight: bold;
+}
+.message.success {
+    background-color: #d4edda;
+    color: #155724;
+    border-color: #c3e6cb;
+}
+.message.error {
+    background-color: #f8d7da;
+    color: #721c24;
+    border-color: #f5c6cb;
 }
 </style>

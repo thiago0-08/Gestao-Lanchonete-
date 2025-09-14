@@ -13,7 +13,7 @@ export const aletaEstoque = defineStore('alertaEstoque', () => {
 
   async function fetchAlertaEstoque() {
     try {
-      const response = await axios.get('https://localhost:7298/api/Alerta/estoque');
+      const response = await axios.get('http://localhost:5138/api/Alerta/estoque');
       
       const apiMessage = response.data.mensagem;
 

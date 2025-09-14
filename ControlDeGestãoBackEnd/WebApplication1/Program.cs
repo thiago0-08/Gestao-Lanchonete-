@@ -18,38 +18,28 @@ builder.Services.AddDbContext<GestaoDbContext>(options =>
 builder.Services.AddControllers();
 
 builder.Services.AddScoped<AlertaService>();
-
 builder.Services.AddScoped<VendasService>();
-
 builder.Services.AddScoped<RelatorioService>();
-
 builder.Services.AddScoped<IReceitaService, ReceitaService>();
-
-builder.Services.AddScoped<RelatorioService>();
+builder.Services.AddScoped<RelatorioService>(); // Repetido, pode ser removido
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 // --- INÍCIO DA CONFIGURAÇÃO DO CORS ---
-var MyAllowSpecificOrigins = "_myAllowSpecificOrigins"; // Nome da sua política CORS
+var MyAllowSpecificOrigins = "_myAllowSpecificOrigins";
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy(name: MyAllowSpecificOrigins,
                      policy =>
                      {
-                         // Permite qualquer método (GET, POST, PUT, DELETE, etc.)
                          policy.AllowAnyMethod()
-                                 // Permite qualquer cabeçalho na requisição
                                  .AllowAnyHeader()
-                                 // Permite credenciais (cookies, autenticação HTTP) 
                                  .AllowCredentials()
-                                 // Define as origens permitidas
                                  .WithOrigins("http://localhost:5173");
                      });
 });
-
-
 
 // Configuração do JWT
 var secretKey = builder.Configuration["Jwt:Key"];
@@ -74,12 +64,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Use os serviços de autenticação e autorização
 var app = builder.Build();
-
-app.UseAuthentication();
-app.UseAuthorization();
-
 
 // Configura o pipeline de requisição HTTP.
 if (app.Environment.IsDevelopment())
@@ -90,7 +75,14 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// --- CORREÇÃO AQUI ---
+// O middleware de CORS deve vir ANTES da autenticação e autorização.
 app.UseCors(MyAllowSpecificOrigins);
+
+// Use os serviços de autenticação e autorização
+app.UseAuthentication();
+app.UseAuthorization();
+
 
 app.MapControllers();
 

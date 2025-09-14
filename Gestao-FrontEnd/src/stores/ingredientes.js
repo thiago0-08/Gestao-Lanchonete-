@@ -7,22 +7,14 @@ export const Ingrediente = defineStore('ingredientes', () => {
 
     async function fetchIngredientes() {
         try {
-            const response = await axios.get('https://localhost:7298/api/Ingrediente');
-
-            // Verifica se a requisição foi bem-sucedida (status 200-299)
-            if (response.status >= 200 && response.status < 300) {
-                ingredientes.value = response.data;
-            } else {
-                throw new Error('Erro ao buscar dados da API. Status: ' + response.status);
-            }
+            const response = await axios.get('http://localhost:5138/api/Ingrediente');
+            ingredientes.value = response.data;
         } catch (error) {
             console.error("Houve um erro na requisição:", error);
-            // Limpa a lista em caso de erro
             ingredientes.value = [];
         }
     }
-    
-    // Retorna a lista de ingredientes
+
     return {
         ingredientes,
         fetchIngredientes

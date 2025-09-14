@@ -12,7 +12,7 @@ export const entradaSaidaEstoque = defineStore('entradaSaidaEstoque', () => {
   // Função para buscar todas as entradas e saídas da API
   async function fetchEntradaSaida() {
     try {
-      const response = await axios.get('https://localhost:7298/api/EntradaSaida');
+      const response = await axios.get('http://localhost:5138/api/EntradaSaida');
       // Supondo que sua API retorne um array de objetos
       entradas.value = response.data.filter(item => item.tipo === 'entrada');
       saidas.value = response.data.filter(item => item.tipo === 'saida');
@@ -25,7 +25,7 @@ export const entradaSaidaEstoque = defineStore('entradaSaidaEstoque', () => {
   async function addEntradaSaida(payload) {
     try {
       // A API precisa de um objeto com 'produtoId', 'quantidade', 'tipo' e 'unidadeMedida'
-      const response = await axios.post('https://localhost:7298/api/EntradaSaida', payload);
+      const response = await axios.post('http://localhost:5138/api/EntradaSaida', payload);
       console.log('Sucesso!', response.data);
       // Após adicionar, é bom atualizar os dados
       await fetchEntradaSaida();

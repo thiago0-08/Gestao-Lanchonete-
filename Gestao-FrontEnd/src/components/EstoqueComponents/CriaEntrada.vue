@@ -4,89 +4,117 @@
             <h2 class="titulo">Entrada de Produto</h2>
             <button class="btn-fechar" @click="$emit('close')">X</button>
 
-            <!-- Mensagem de sucesso -->
             <div v-if="message" class="success-message">
                 {{ message }}
             </div>
 
             <form @submit.prevent="submitTicket">
                 <div class="form-group">
-                    <label for="cliente">Nome do Produto:</label>
-                    <input type="text" id="produto" v-model="produtoId" placeholder="Batata, Tomate, Cebola" required>
+                    <label for="produto">Nome do Produto:</label>
+                    <input 
+                        type="text" 
+                        id="produto" 
+                        v-model="produtoNome" 
+                        @input="filterProdutos"
+                        placeholder="Batata, Tomate, Cebola" 
+                        required>
+                    
+                    <ul v-if="filteredProdutos.length > 0 && produtoNome.length > 0" class="suggestions">
+                        <li 
+                            v-for="item in filteredProdutos" 
+                            :key="item.id" 
+                            @click="selectProduto(item)">
+                            {{ item.nome }}
+                        </li>
+                    </ul>
                 </div>
 
                 <div class="form-group">
-                    <label for="data-pedido">Quantidade</label>
-                    <input type="number" id="quantidade" v-model="quantidade" placeholder="Ex: 5"  step="0.01" required>
+                    <label for="quantidade">Quantidade ({{ selectedProduto?.unidadeMedida || 'Unidade' }})</label>
+                    <input type="number" id="quantidade" v-model.number="quantidade" placeholder="Ex: 5" step="0.01" required>
                 </div>
-
-                <div class="form-group">
-                    <label for="itens">Unidade </label>
-                    <input type="number" id="itens" v-model="unidadeMedida"  placeholder="Ex: 10.50" step="0.01" required>
-                </div>
-
+                
                 <button type="submit" class="btn-enviar">Enviar</button>
             </form>
         </div>
     </div>
 </template>
 
-
-
 <script setup>
 import { ref, onMounted } from 'vue';
 import { entradaSaidaEstoque } from '../../stores/EntradaSaidaEstoque.js';
+import { Ingrediente } from '@/stores/ingredientes';
 
+const entradaSaidaStore = entradaSaidaEstoque();
+const ingredienteStore = Ingrediente();
 
-const produtoId = ref('');
+const produtoNome = ref(''); // O texto do input
 const quantidade = ref(0);
-const unidadeMedida = ref(0);
 const message = ref('');
 
+const ingredientes = ref([]); // Lista completa de ingredientes da API
+const filteredProdutos = ref([]); // Lista de sugestões filtrada
+const selectedProduto = ref(null); // O objeto de produto selecionado
 
-const store = entradaSaidaEstoque();
+// Carrega os ingredientes da API quando o componente é montado
+onMounted(async () => {
+  await ingredienteStore.fetchIngredientes();
+  ingredientes.value = ingredienteStore.ingredientes;
+});
 
+// Filtra os produtos com base no que o usuário digita
+const filterProdutos = () => {
+    if (produtoNome.value.length > 0) {
+        filteredProdutos.value = ingredientes.value.filter(ing =>
+            ing.nome.toLowerCase().includes(produtoNome.value.toLowerCase())
+        );
+    } else {
+        filteredProdutos.value = [];
+    }
+    // Reseta o produto selecionado se o texto for alterado
+    selectedProduto.value = null;
+};
 
-async function submitTicket() {
- 
-  const payload = {
-    produtoId: produtoId.value,
-    quantidade: quantidade.value,
-    unidadeMedida: unidadeMedida.value,
-    tipo: 'entrada'
-  };
+// Seleciona um produto da lista de sugestões
+const selectProduto = (item) => {
+    produtoNome.value = item.nome;
+    selectedProduto.value = item;
+    filteredProdutos.value = []; // Esconde a lista
+};
 
-  try {
-    
-    await store.addEntradaSaida(payload);
+// Envia a requisição
+const submitTicket = async () => {
+    // Valida se um produto foi realmente selecionado
+    if (!selectedProduto.value) {
+        message.value = 'Por favor, selecione um produto Valido.';
+        return;
+    }
 
-    
-    message.value = 'Entrada do Produto feita com sucesso!';
-    
-    
-    produtoId.value = '';
-    quantidade.value = 0;
-    unidadeMedida.value = 0;
+    const payload = {
+        produtoId: selectedProduto.value.id, // ID do produto selecionado
+        quantidade: quantidade.value,
+        unidadeMedida: selectedProduto.value.unidadeMedida, // Unidade de medida do produto selecionado
+        tipo: 'entrada'
+    };
 
-    
-    setTimeout(() => {
-      message.value = '';
-      emit('close'); 
-    }, 3000);
-
-  } catch (error) {
-    
-    message.value = 'Erro ao fazer a entrada do produto.';
-    console.error('Erro:', error);
-  }
-}
-
+    try {
+        await entradaSaidaStore.addEntradaSaida(payload);
+        message.value = 'Entrada do Produto feita com sucesso!';
+        // Limpa os campos
+        produtoNome.value = '';
+        quantidade.value = 0;
+        selectedProduto.value = null;
+    } catch (error) {
+        message.value = 'Erro ao fazer a entrada do produto.';
+        console.error('Erro:', error);
+    }
+};
 
 const emit = defineEmits(['close']);
 </script>
 
 <style scoped>
-/* Fundo escuro do modal */
+
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -191,5 +219,30 @@ const emit = defineEmits(['close']);
     border: 1px solid #c3e6cb;
     border-radius: 4px;
     font-weight: bold;
+}
+
+
+
+/* Adicione estilos para a lista de sugestões */
+.suggestions {
+    list-style-type: none;
+    padding: 0;
+    margin-top: 5px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    max-height: 150px;
+    overflow-y: auto;
+    background-color: #fff;
+    z-index: 1001; /* Garante que a lista fique acima do modal */
+}
+
+.suggestions li {
+    padding: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid #eee;
+}
+
+.suggestions li:hover {
+    background-color: #f0f0f0;
 }
 </style>

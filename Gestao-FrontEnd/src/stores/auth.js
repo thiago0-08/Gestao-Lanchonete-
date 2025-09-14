@@ -2,9 +2,12 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
 export const useAuthStore = defineStore('auth', () => {
-  const isAuthenticated = ref(false);
-  const token = ref(null);
-  const username = ref(null); 
+  // Inicializa o estado lendo o token do localStorage
+  const token = ref(localStorage.getItem('authToken'));
+  // O estado de autenticação depende da existência do token
+  const isAuthenticated = ref(!!token.value);
+  
+  const username = ref(null);
 
   function setAuthenticated(value) {
     isAuthenticated.value = value;
@@ -12,19 +15,23 @@ export const useAuthStore = defineStore('auth', () => {
 
   function setToken(newToken) {
     token.value = newToken;
+    // O token é salvo no localStorage no momento do login.
+    // Aqui, a função apenas atualiza a store.
   }
 
-  function setUsername(newUsername) { 
+  function setUsername(newUsername) {
     username.value = newUsername;
   }
 
   function logout() {
     isAuthenticated.value = false;
     token.value = null;
-    username.value = null; 
+    username.value = null;
+    // Remove o token do localStorage
+    localStorage.removeItem('authToken');
   }
 
-  return { isAuthenticated, token, username, setAuthenticated, setToken, setUsername, logout }; 
+  return { isAuthenticated, token, username, setAuthenticated, setToken, setUsername, logout };
 });
 
 export const aletaEstoque = defineStore('alertaEstoque', () => {
@@ -34,4 +41,3 @@ export const aletaEstoque = defineStore('alertaEstoque', () => {
   }
   return { alertaEstoque, setAlertaEstoque };
 });
-

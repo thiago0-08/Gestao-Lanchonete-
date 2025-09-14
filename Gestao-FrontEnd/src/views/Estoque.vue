@@ -32,7 +32,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="item in estoque" :key="item.id">
+                    <tr v-for="item in ingredientes" :key="item.id">
                         <td>{{ item.id }}</td>
                         <td>{{ item.nome }}</td>
                         <td>{{ item.unidadeMedida }}</td>
@@ -64,15 +64,14 @@ import CriaSaida from '@/components/EstoqueComponents/CriaSaida.vue';
 import CriaEntrada from '@/components/EstoqueComponents/CriaEntrada.vue';
 import { Ingrediente } from '@/stores/ingredientes';
 
-
 const ingredienteStore = Ingrediente();
 
+// A variável está definida como 'ingredientes'
 const ingredientes = ref([]);
 
 //  exibição dos modais
 const showcriaNovaSaida = ref(false);
 const showcriaNovaEntrada = ref(false);
-
 
 onMounted(async () => {
     await ingredienteStore.fetchIngredientes();

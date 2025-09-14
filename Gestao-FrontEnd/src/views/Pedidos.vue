@@ -19,17 +19,21 @@
                 </div>
                 <button class="btn-filtrar">Filtrar</button>
             </div>
-            <button class="btn-novo-pedido" @click="showcriaNovoPedido = true">+ Novo Pedido</button>
+            <button class="btn-novo-pedido" @click="showCriaNovoPedido = true">+ Novo Pedido</button>
         </div>
 
-        
-        <div v-if="showcriaNovoPedido">
-            
-            <CriaPedido @close="showcriaNovoPedido = false" />
+        <div v-if="showCriaNovoPedido">
+            <CriaPedido @close="showCriaNovoPedido = false" />
         </div>
 
         <div class="tabela-pedidos dashboard-card">
-            <table>
+            <div v-if="pedidosStore.loading">
+                <p>Carregando pedidos...</p>
+            </div>
+            <div v-else-if="pedidosStore.error">
+                <p class="error-message">{{ pedidosStore.error }}</p>
+            </div>
+            <table v-else>
                 <thead>
                     <tr>
                         <th>ID</th>
@@ -41,37 +45,20 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td>Nome</td>
-                        <td>06/09/2025</td>
-                        <td><span class="status-badge pendente">Pendente</span></td>
-                        <td>R$ 20,00</td>
-                        <td class="acoes">
-                            <button class="btn-editar"><i class="fas fa-pencil-alt"></i></button>
-                            <button class="btn-excluir"><i class="fas fa-trash-alt"></i></button>
+                    <tr v-for="pedido in pedidosStore.pedidos" :key="pedido.id">
+                        <td>{{ pedido.id }}</td>
+                        <td>{{ pedido.cliente }}</td>
+                        <td>{{ new Date(pedido.data).toLocaleDateString() }}</td>
+                        <td>
+                            <span :class="['status-badge', pedido.status.toLowerCase().replace(/ /g, '-')]">
+                                {{ pedido.status }}
+                            </span>
                         </td>
-                    </tr>
-                    <tr>
-                        <td>2</td>
-                        <td>Maria</td>
-                        <td>06/09/2025</td>
-                        <td><span class="status-badge em-andamento">Em Andamento</span></td>
-                        <td>R$ 35,50</td>
+                        <td>R$ {{ pedido.total.toFixed(2) }}</td>
                         <td class="acoes">
                             <button class="btn-editar"><i class="fas fa-pencil-alt"></i></button>
-                            <button class="btn-excluir"><i class="fas fa-trash-alt"></i></button>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>3</td>
-                        <td>José</td>
-                        <td>06/09/2025</td>
-                        <td><span class="status-badge concluido">Concluído</span></td>
-                        <td>R$ 55,00</td>
-                        <td class="acoes">
-                            <button class="btn-editar"><i class="fas fa-pencil-alt"></i></button>
-                            <button class="btn-excluir"><i class="fas fa-trash-alt"></i></button>
+                            <button class="btn-excluir" @click="pedidosStore.deletePedido(pedido.id)"><i
+                                    class="fas fa-trash-alt"></i></button>
                         </td>
                     </tr>
                 </tbody>
@@ -80,28 +67,22 @@
     </div>
 </template>
 
+<script setup>
+import { ref, onMounted } from 'vue';
+import CriaPedido from '@/components/CriaPedido.vue';
+import { usePedidosStore } from '@/stores/pedidos';
 
-<script>
+const showCriaNovoPedido = ref(false);
+const pedidosStore = usePedidosStore();
 
-
-    import CriaPedido from '@/components/CriaPedido.vue';
-
-export default {
-    components: {
-        CriaPedido,
-    },
-
-    data() {
-        return {
-            showcriaNovoPedido: false,
-        };
-    },
-    
-};
-
+// Chamada à API para buscar os pedidos ao montar o componente
+onMounted(() => {
+    pedidosStore.fetchPedidos();
+});
 </script>
 
 <style scoped>
+/* Seu CSS não precisa de alterações */
 .container {
     margin-left: 250px;
     padding: 20px;
@@ -113,7 +94,6 @@ h1 {
     margin-bottom: 20px;
 }
 
-/* Base para Cards */
 .dashboard-card {
     background: #ffffff;
     border: 1px solid #e0e0e0;
@@ -126,7 +106,6 @@ h1 {
 .info-pedidos {
     display: flex;
     justify-content: space-between;
-    /* Alinha os filtros e o botão novo pedido */
     align-items: center;
 }
 

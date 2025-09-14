@@ -1,135 +1,135 @@
 <template>
-    <div class="container">
+  <div class="container">
 
-        <h2>Bem-vindo ao Dashboard</h2>
-        <p>Aqui você pode ver uma visão geral do sistema de gestão da lanchonete.</p>
+    <h2>Bem-vindo ao Dashboard</h2>
+    <p>Aqui você pode ver uma visão geral do sistema de gestão da lanchonete.</p>
 
-        <div class="infos">
-            <div class="info-box">
-                <div class="icone green">
-                    <i class="fa-solid fa-dollar-sign"></i>
-                </div>
-                <div class="info-content">
-                    <h3>Faturamento Hoje</h3>
-                    <p>R$ 123</p>
-                </div>
-            </div>
-            <div class="info-box">
-                <div class="icone blue">
-                    <i class="fa-solid fa-file"></i>
-                </div>
-                <div class="info-content">
-                    <h3>Pedidos de Hoje</h3>
-                    <p>20</p>
-                </div>
-            </div>
-            <div class="info-box">
-                <div class="icone orange">
-                    <i class="fa-solid fa-ticket"></i>
-                </div>
-                <div class="info-content">
-                    <h3>Preço Médio</h3>
-                    <p>12</p>
-                </div>
-            </div>
-            <div class="info-box">
-                <div class="icone red">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                </div>
-                <div class="info-content">
-                    <h3>Alerta Estoque</h3>
-                    <div class="tooltip-wrapper" @mouseenter="showTooltip" @mouseleave="hideTooltip">
-                        <p>{{ store.quantidade }}</p>
-                        <div v-if="isTooltipVisible" class="tooltip-message">
-                            <p>{{ store.mensagem }}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <div class="infos">
+      <div class="info-box">
+        <div class="icone green">
+          <i class="fa-solid fa-dollar-sign"></i>
         </div>
-        <div class="info-vendas">
-            <div class="dashboard-card chart-card">
-                <h3>Vendas Mensais</h3>
-                <Ultimos7dias />
-            </div>
-
-            <div class="dashboard-card table-card">
-                <h3>Produtos Mais Vendidos</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Produto</th>
-                            <th>Quantidade Vendida</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Hambúrguer</td>
-                            <td>150</td>
-                        </tr>
-                        <tr>
-                            <td>Pizza</td>
-                            <td>120</td>
-                        </tr>
-                        <tr>
-                            <td>Refrigerante</td>
-                            <td>200</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        <div class="info-content">
+          <h3>Faturamento Hoje</h3>
+          <p>R$ 123</p>
         </div>
-
-        <div class="dashboard-card  alert-table">
-            <h3>Alerta de Estoque</h3>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Produto</th>
-                        <th>Quantidade em Estoque</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Pão de Hambúrguer</td>
-                        <td>5</td>
-                    </tr>
-                    <tr>
-                        <td>Queijo</td>
-                        <td>2</td>
-                    </tr>
-                    <tr>
-                        <td>Tomate</td>
-                        <td>4</td>
-                    </tr>
-                </tbody>
-            </table>
+      </div>
+      <div class="info-box">
+        <div class="icone blue">
+          <i class="fa-solid fa-file"></i>
         </div>
+        <div class="info-content">
+          <h3>Pedidos de Hoje</h3>
+          <p>20</p>
+        </div>
+      </div>
+      <div class="info-box">
+        <div class="icone orange">
+          <i class="fa-solid fa-ticket"></i>
+        </div>
+        <div class="info-content">
+          <h3>Preço Médio</h3>
+          <p>12</p>
+        </div>
+      </div>
+      <div class="info-box">
+        <div class="icone red">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div class="info-content">
+          <h3>Alerta Estoque</h3>
+          <div class="tooltip-wrapper" @mouseenter="showTooltip" @mouseleave="hideTooltip">
+            <p>{{ store.quantidade }}</p>
+            <div v-if="isTooltipVisible" class="tooltip-message">
+              <p>{{ store.mensagem }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+    <div class="info-vendas">
+      <div class="dashboard-card chart-card">
+        <h3>Vendas Mensais</h3>
+        <Ultimos7dias />
+      </div>
+
+      <div class="dashboard-card table-card">
+        <h3>Produtos Mais Vendidos</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Quantidade Vendida</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Hambúrguer</td>
+              <td>150</td>
+            </tr>
+            <tr>
+              <td>Pizza</td>
+              <td>120</td>
+            </tr>
+            <tr>
+              <td>Refrigerante</td>
+              <td>200</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <div class="dashboard-card alert-table">
+      <h3>Alerta de Estoque</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Quantidade em Estoque</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in ingredientes" :key="item.id">
+            <td>{{ item.nome }}</td>
+            <td>{{ item.quantidadeEstoque }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue';
 import Ultimos7dias from '@/components/graficos/Ultimos7dias.vue';
 import { aletaEstoque } from '../stores/alertaEstoque';
+import { Ingrediente } from '@/stores/ingredientes';
 
 const store = aletaEstoque();
-
-onMounted(() => {
-    store.fetchAlertaEstoque();
-});
+const ingredienteStore = Ingrediente();
+const ingredientes = ref([]);
 
 const isTooltipVisible = ref(false);
 
 // Função para mostrar o tooltip
 const showTooltip = () => {
-    isTooltipVisible.value = true;
+  isTooltipVisible.value = true;
 };
 
 // Função para esconder o tooltip
 const hideTooltip = () => {
-    isTooltipVisible.value = false;
+  isTooltipVisible.value = false;
 };
+
+onMounted(async () => {
+  // Chamadas de API para o alerta de estoque
+  await store.fetchAlertaEstoque();
+  
+  // Chamada de API para os ingredientes
+  await ingredienteStore.fetchIngredientes();
+  ingredientes.value = ingredienteStore.ingredientes;
+});
+
 </script>
 
 <style scoped>
