@@ -11,29 +11,33 @@
             <form @submit.prevent="submitTicket">
                 <div class="form-group">
                     <label for="produto">Nome do Produto:</label>
-                    <input 
-                        type="text" 
-                        id="produto" 
-                        v-model="produtoNome" 
-                        @input="filterProdutos"
-                        placeholder="Batata, Tomate, Cebola" 
-                        required>
-                    
+                    <input type="text" id="produto" v-model="produtoNome" @input="filterProdutos"
+                        placeholder="Batata, Tomate, Cebola" required>
+
                     <ul v-if="filteredProdutos.length > 0 && produtoNome.length > 0" class="suggestions">
-                        <li 
-                            v-for="item in filteredProdutos" 
-                            :key="item.id" 
-                            @click="selectProduto(item)">
+                        <li v-for="item in filteredProdutos" :key="item.id" @click="selectProduto(item)">
                             {{ item.nome }}
                         </li>
                     </ul>
                 </div>
 
                 <div class="form-group">
-                    <label for="quantidade">Quantidade ({{ selectedProduto?.unidadeMedida || 'Unidade' }})</label>
-                    <input type="number" id="quantidade" v-model.number="quantidade" placeholder="Ex: 5" step="0.01" required>
+                    <label for="custo">Custo Unitário (R$)</label>
+                    <input type="number" id="custo" v-model.number="custoUnitario" placeholder="Ex: 10.50" step="0.01"
+                        required>
                 </div>
-                
+
+                <div class="form-group">
+                    <label for="quantidade">Quantidade ({{ selectedProduto?.unidadeMedida || 'Unidade' }})</label>
+                    <input type="number" id="quantidade" v-model.number="quantidade" placeholder="Ex: 5" step="0.01"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label for="validade">Data de Validade (Opcional)</label>
+                    <input type="date" id="validade" v-model="dataValidade">
+                </div>
+
                 <button type="submit" class="btn-enviar">Enviar</button>
             </form>
         </div>
@@ -41,28 +45,33 @@
 </template>
 
 <script setup>
+
 import { ref, onMounted } from 'vue';
-import { entradaSaidaEstoque } from '../../stores/EntradaSaidaEstoque.js';
+import { useEntradaStore } from '../../stores/EntradaProduto.js'; 
 import { Ingrediente } from '@/stores/ingredientes';
 
-const entradaSaidaStore = entradaSaidaEstoque();
+
+const entradaStore = useEntradaStore(); 
 const ingredienteStore = Ingrediente();
 
-const produtoNome = ref(''); // O texto do input
+
+const produtoNome = ref('');
 const quantidade = ref(0);
+const custoUnitario = ref(0); 
+const dataValidade = ref(null); 
 const message = ref('');
 
-const ingredientes = ref([]); // Lista completa de ingredientes da API
-const filteredProdutos = ref([]); // Lista de sugestões filtrada
-const selectedProduto = ref(null); // O objeto de produto selecionado
+const ingredientes = ref([]);
+const filteredProdutos = ref([]);
+const selectedProduto = ref(null);
 
-// Carrega os ingredientes da API quando o componente é montado
+
 onMounted(async () => {
-  await ingredienteStore.fetchIngredientes();
-  ingredientes.value = ingredienteStore.ingredientes;
+    await ingredienteStore.fetchIngredientes();
+    ingredientes.value = ingredienteStore.ingredientes;
 });
 
-// Filtra os produtos com base no que o usuário digita
+
 const filterProdutos = () => {
     if (produtoNome.value.length > 0) {
         filteredProdutos.value = ingredientes.value.filter(ing =>
@@ -71,49 +80,74 @@ const filterProdutos = () => {
     } else {
         filteredProdutos.value = [];
     }
-    // Reseta o produto selecionado se o texto for alterado
+
     selectedProduto.value = null;
 };
 
-// Seleciona um produto da lista de sugestões
+
 const selectProduto = (item) => {
     produtoNome.value = item.nome;
     selectedProduto.value = item;
-    filteredProdutos.value = []; // Esconde a lista
+    filteredProdutos.value = [];
 };
 
-// Envia a requisição
+
 const submitTicket = async () => {
-    // Valida se um produto foi realmente selecionado
+
+  
     if (!selectedProduto.value) {
-        message.value = 'Por favor, selecione um produto Valido.';
+        message.value = 'Por favor, selecione um produto Válido.';
+        return;
+    }
+    if (quantidade.value <= 0) {
+        message.value = 'A quantidade de entrada deve ser maior que zero.';
+        return;
+    }
+    if (custoUnitario.value <= 0) {
+        message.value = 'O custo unitário deve ser maior que zero.';
         return;
     }
 
+
     const payload = {
-        produtoId: selectedProduto.value.id, // ID do produto selecionado
+        IdIngrediente: selectedProduto.value.id, 
         quantidade: quantidade.value,
-        unidadeMedida: selectedProduto.value.unidadeMedida, // Unidade de medida do produto selecionado
-        tipo: 'entrada'
+        custoUnitario: custoUnitario.value,
+        dataValidade: dataValidade.value, 
+        tipo: 'entrada' 
     };
 
     try {
-        await entradaSaidaStore.addEntradaSaida(payload);
+        await entradaStore.addEntrada(payload); 
         message.value = 'Entrada do Produto feita com sucesso!';
-        // Limpa os campos
-        produtoNome.value = '';
-        quantidade.value = 0;
-        selectedProduto.value = null;
+        emit('lancamento-sucesso'); 
+
+       
+        setTimeout(() => {
+            produtoNome.value = '';
+            quantidade.value = 0;
+            custoUnitario.value = 0;
+            selectedProduto.value = null;
+            dataValidade.value = null;
+            emit('close');
+        }, 1500);
+
     } catch (error) {
-        message.value = 'Erro ao fazer a entrada do produto.';
+        const apiError = error.message.includes('Falha na requisição:')
+            ? error.message.replace('Error: Falha na requisição: ', '')
+            : 'Erro ao fazer a entrada do produto. Verifique o console.';
+        message.value = apiError;
         console.error('Erro:', error);
     }
 };
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'lancamento-sucesso']);
+
+
 </script>
 
 <style scoped>
+
 
 .modal-overlay {
     position: fixed;
@@ -157,6 +191,7 @@ const emit = defineEmits(['close']);
     color: #888;
     transition: color 0.3s;
 }
+
 .btn-fechar:hover {
     color: #333;
 }
@@ -205,6 +240,7 @@ const emit = defineEmits(['close']);
     margin-top: 15px;
     transition: background-color 0.3s;
 }
+
 .btn-enviar:hover {
     background-color: #e65c00;
 }
@@ -222,7 +258,6 @@ const emit = defineEmits(['close']);
 }
 
 
-
 /* Adicione estilos para a lista de sugestões */
 .suggestions {
     list-style-type: none;
@@ -233,7 +268,8 @@ const emit = defineEmits(['close']);
     max-height: 150px;
     overflow-y: auto;
     background-color: #fff;
-    z-index: 1001; /* Garante que a lista fique acima do modal */
+    z-index: 1001;
+    /* Garante que a lista fique acima do modal */
 }
 
 .suggestions li {

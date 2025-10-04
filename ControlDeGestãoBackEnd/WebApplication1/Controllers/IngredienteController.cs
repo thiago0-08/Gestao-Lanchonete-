@@ -12,7 +12,7 @@ namespace WebApplication1.Controllers
 
     [Route("api/[controller]")]
     [ApiController]
-    // [Authorize] // Protege este controlador com JWT
+   // [Authorize] // Protege este controlador com JWT
     public class IngredienteController : ControllerBase
     {
         private readonly GestaoDbContext _context;
@@ -69,10 +69,10 @@ namespace WebApplication1.Controllers
             return Ok(responseDTO);
         }
 
-        [HttpPost] // NOVO ENDPOINT DE CRIAÇÃO
+        [HttpPost] 
         public async Task<ActionResult<IngredienteResponseDTO>> PostIngrediente(IngredienteDTO ingredienteDTO)
         {
-            // Validação: Verificar se o nome já existe
+            //  Verificar se o nome já existe
             var nomeExistente = await _context.Ingredientes.AnyAsync(i => i.Nome == ingredienteDTO.Nome);
             if (nomeExistente)
             {
@@ -85,8 +85,8 @@ namespace WebApplication1.Controllers
                 UnidadeMedida = ingredienteDTO.UnidadeMedida,
                 EstoqueMinimo = ingredienteDTO.EstoqueMinimo,
                 FornecedorPadrao = ingredienteDTO.FornecedorPadrao,
-                QuantidadeEstoque = 0m, // Inicializado como zero
-                CustoMedio = 0m,     // Inicializado como zero
+                QuantidadeEstoque = 0m, 
+                CustoMedio = 0m,     
                 DataUltimaAtualizacao = DateTime.UtcNow
             };
 
@@ -106,7 +106,7 @@ namespace WebApplication1.Controllers
                 DataUltimaAtualizacao = ingrediente.DataUltimaAtualizacao
             };
 
-            // Retorna 201 Created com o recurso recém-criado
+            // Retorna 201 Created 
             return CreatedAtAction(nameof(GetIngrediente), new { id = ingrediente.Id }, responseDTO);
         }
 
@@ -131,7 +131,7 @@ namespace WebApplication1.Controllers
 
             if (novaQuantidadeTotal > 0)
             {
-                // CORREÇÃO (Custo): Arredonda o CustoMedio para 2 casas decimais
+                //  Arredonda o CustoMedio para 2 casas decimais
                 ingrediente.CustoMedio = Math.Round((custoTotalAtual + custoTotalEntrada) / novaQuantidadeTotal, 2);
             }
             else
@@ -139,7 +139,7 @@ namespace WebApplication1.Controllers
                 ingrediente.CustoMedio = 0m;
             }
 
-            // CORREÇÃO (Estoque): Arredonda a quantidade de estoque para 2 casas decimais
+            //  Arredonda a quantidade de estoque para 2 casas decimais
             ingrediente.QuantidadeEstoque = Math.Round(novaQuantidadeTotal, 2);
             ingrediente.DataUltimaAtualizacao = DateTime.UtcNow;
 
@@ -249,7 +249,7 @@ namespace WebApplication1.Controllers
                 return BadRequest("Estoque insuficiente para a quantidade de saída solicitada.");
             }
 
-            // CORREÇÃO: Arredonda a quantidade de estoque após a subtração
+            //  Arredonda a quantidade de estoque após a subtração
             ingrediente.QuantidadeEstoque = Math.Round(ingrediente.QuantidadeEstoque - saidaDTO.QuantidadeSaida, 2);
             ingrediente.DataUltimaAtualizacao = DateTime.UtcNow;
 

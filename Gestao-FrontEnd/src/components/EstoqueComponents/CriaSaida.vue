@@ -11,29 +11,23 @@
             <form @submit.prevent="submitTicket">
                 <div class="form-group">
                     <label for="produto">Nome do Produto:</label>
-                    <input 
-                        type="text" 
-                        id="produto" 
-                        v-model="produtoNome" 
-                        @input="filterProdutos"
-                        placeholder="Ex: Hambúrguer" 
-                        required>
-                    
+                    <input type="text" id="produto" v-model="produtoNome" @input="filterProdutos"
+                        placeholder="Ex: Hambúrguer" required>
+
                     <ul v-if="filteredProdutos.length > 0 && produtoNome.length > 0" class="suggestions">
-                        <li 
-                            v-for="item in filteredProdutos" 
-                            :key="item.id" 
-                            @click="selectProduto(item)">
+                        <li v-for="item in filteredProdutos" :key="item.id" @click="selectProduto(item)">
                             {{ item.nome }}
                         </li>
                     </ul>
                 </div>
 
                 <div class="form-group">
-                    <label for="quantidade-saida">Quantidade de saída ({{ selectedProduto?.unidadeMedida || 'Unidade' }})</label>
-                    <input type="number" id="quantidade-saida" v-model.number="quantidade" placeholder="Ex: 5" step="0.01" required>
+                    <label for="quantidade-saida">Quantidade de saída ({{ selectedProduto?.unidadeMedida || 'Unidade'
+                    }})</label>
+                    <input type="number" id="quantidade-saida" v-model.number="quantidade" placeholder="Ex: 5"
+                        step="0.01" required>
                 </div>
-                
+
                 <button type="submit" class="btn-enviar">Enviar</button>
             </form>
         </div>
@@ -41,11 +35,12 @@
 </template>
 
 <script setup>
+
 import { ref, onMounted } from 'vue';
-import { entradaSaidaEstoque } from '../../stores/EntradaSaidaEstoque.js';
+import { useSaidaStore } from '../../stores/SaidaProduto.js';
 import { Ingrediente } from '@/stores/ingredientes';
 
-const entradaSaidaStore = entradaSaidaEstoque();
+const saidaStore = useSaidaStore(); // <-- CORRIGIDO
 const ingredienteStore = Ingrediente();
 
 const produtoNome = ref('');
@@ -57,8 +52,8 @@ const filteredProdutos = ref([]);
 const selectedProduto = ref(null);
 
 onMounted(async () => {
-  await ingredienteStore.fetchIngredientes();
-  ingredientes.value = ingredienteStore.ingredientes;
+    await ingredienteStore.fetchIngredientes();
+    ingredientes.value = ingredienteStore.ingredientes;
 });
 
 const filterProdutos = () => {
@@ -69,6 +64,7 @@ const filterProdutos = () => {
     } else {
         filteredProdutos.value = [];
     }
+
     selectedProduto.value = null;
 };
 
@@ -79,36 +75,51 @@ const selectProduto = (item) => {
 };
 
 const submitTicket = async () => {
+
     if (!selectedProduto.value) {
-        message.value = 'Por favor, selecione um produto da lista de sugestões.';
+        message.value = 'Por favor, selecione um produto Válido.';
+        return;
+    }
+    // Validação que o backend exige (> 0)
+    if (quantidade.value <= 0) {
+        message.value = 'A quantidade de saída deve ser maior que zero.';
         return;
     }
 
     const payload = {
-        produtoId: selectedProduto.value.id,
+        idIngrediente: selectedProduto.value.id, // camelCase
         quantidade: quantidade.value,
         unidadeMedida: selectedProduto.value.unidadeMedida,
         tipo: 'saida'
     };
 
     try {
-        await entradaSaidaStore.addEntradaSaida(payload);
+        await saidaStore.addSaida(payload); // <-- FUNÇÃO CORRIGIDA
         message.value = 'Saída do Produto feita com sucesso!';
-        produtoNome.value = '';
-        quantidade.value = 0;
-        selectedProduto.value = null;
+        emit('lancamento-sucesso');
+
+        setTimeout(() => {
+            produtoNome.value = '';
+            quantidade.value = 0;
+            selectedProduto.value = null;
+            emit('close');
+        }, 1500);
+
     } catch (error) {
-        message.value = 'Erro ao fazer a saída do produto.';
+        const apiError = error.message.includes('Falha na requisição:')
+            ? error.message.replace('Error: Falha na requisição: ', '')
+            : 'Erro ao fazer a saída do produto. Verifique o console.';
+        message.value = apiError;
         console.error('Erro:', error);
     }
 };
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'lancamento-sucesso']);
+
+
 </script>
 
 <style scoped>
-
-
 /* Fundo escuro do modal */
 .modal-overlay {
     position: fixed;
@@ -152,6 +163,7 @@ const emit = defineEmits(['close']);
     color: #888;
     transition: color 0.3s;
 }
+
 .btn-fechar:hover {
     color: #333;
 }
@@ -200,6 +212,7 @@ const emit = defineEmits(['close']);
     margin-top: 15px;
     transition: background-color 0.3s;
 }
+
 .btn-enviar:hover {
     background-color: #e65c00;
 }
@@ -240,7 +253,4 @@ const emit = defineEmits(['close']);
 .suggestions li:hover {
     background-color: #f0f0f0;
 }
-
-
-
 </style>

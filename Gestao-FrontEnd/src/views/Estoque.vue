@@ -1,61 +1,86 @@
 <template>
-    <div class="container">
-        <h1>Controle de Estoque</h1>
-        <div class="box dashboard-card">
-            <button class="btn-entrada" @click="showcriaNovaEntrada = true">Registrar Entrada</button>
-            <button class="btn-saida" @click="showcriaNovaSaida = true">Registrar Saída</button>
-        </div>
+  <div class="container">
+    <h1>Controle de Estoque</h1>
 
-        <div v-if="showcriaNovaEntrada">
-            <CriaEntrada @close="showcriaNovaEntrada = false" />
-        </div>
-
-        <div v-if="showcriaNovaSaida">
-            <CriaSaida @close="showcriaNovaSaida = false" />
-        </div>
-
-        <div class="box2 dashboard-card">
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Nome</th>
-                        <th>Unidade de Medida</th>
-                        <th>Quantidade em Estoque</th>
-                        <th>Estoque Mínimo</th>
-                        <th>Custo Médio</th>
-                        <th>Fornecedor Padrão</th>
-                        <th>Data de Validade Próxima</th>
-                        <th>Data da Última Atualização</th>
-                        <th>Status</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="item in ingredientes" :key="item.id">
-                        <td>{{ item.id }}</td>
-                        <td>{{ item.nome }}</td>
-                        <td>{{ item.unidadeMedida }}</td>
-                        <td>{{ item.quantidadeEstoque }}</td>
-                        <td>{{ item.estoqueMinimo }}</td>
-                        <td>R$ {{ item.custoMedio.toFixed(2) }}</td>
-                        <td>{{ item.fornecedorPadrao }}</td>
-                        <td>{{ new Date(item.dataValidadeProxima).toLocaleDateString() }}</td>
-                        <td>{{ new Date(item.dataUltimaAtualizacao).toLocaleDateString() }}</td>
-                        <td>
-                            <span
-                                :class="['status-badge', { 'critico': item.quantidadeEstoque < item.estoqueMinimo, 'normal': item.quantidadeEstoque >= item.estoqueMinimo }]">
-                                {{ item.quantidadeEstoque < item.estoqueMinimo ? 'Crítico' : 'Normal' }} </span>
-                        </td>
-                        <td class="acoes">
-                            <button class="btn-editar"><i class="fas fa-pencil-alt"></i></button>
-                            <button class="btn-excluir"><i class="fas fa-trash-alt"></i></button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+    <div class="box dashboard-card">
+    
+        <button
+            class="btn-entrada"
+            @click="showcriaNovaEntrada = true"
+        >
+            Registrar Entrada
+        </button>
+        <button
+            class="btn-saida"
+            @click="showcriaNovaSaida = true"
+        >
+            Registrar Saída
+        </button>
     </div>
+
+    <!-- Modal de Registro de Entrada -->
+    <div v-if="showcriaNovaEntrada">
+        <CriaEntrada 
+            @close="showcriaNovaEntrada = false" 
+            @lancamento-sucesso="reloadIngredientes"
+        />
+    </div>
+
+    <!-- Modal de Registro de Saída -->
+    <div v-if="showcriaNovaSaida">
+        <CriaSaida 
+            @close="showcriaNovaSaida = false" 
+            @lancamento-sucesso="reloadIngredientes"
+        />
+    </div>
+
+    <!-- Tabela de Estoque -->
+    <div class="box2 dashboard-card">
+        <h2>Estoque de Ingredientes</h2>
+
+        <p v-if="loading">Carregando dados de estoque...</p>
+        <p v-else-if="ingredienteStore.ingredientes.length === 0">Nenhum ingrediente cadastrado. Adicione um ingrediente!</p>
+      
+        <table v-else>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nome</th>
+                    <th>Unidade</th>
+                    <th>Estoque Atual</th>
+                    <th>Estoque Mínimo</th>
+                    <th>Custo Médio</th>
+                    <th>Data Validade Próxima</th>
+                    <th>Data Última Atualização</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr v-for="item in ingredientes" :key="item.id">
+                    <td>{{ item.id }}</td>
+                    <td>{{ item.nome }}</td>
+                    <td>{{ item.unidadeMedida }}</td>
+                    <td>{{ item.quantidadeEstoque }}</td>
+                    <td>{{ item.estoqueMinimo }}</td>
+                    <td>R$ {{ item.custoMedio ? item.custoMedio.toFixed(2) : '0.00' }}</td>
+                    <td>{{ formatDate(item.dataValidadeProxima) }}</td>
+                    <td>{{ formatDate(item.dataUltimaAtualizacao) }}</td>
+                    <td>
+                        <span
+                            :class="['status-badge', { 'critico': item.quantidadeEstoque < item.estoqueMinimo, 'normal': item.quantidadeEstoque >= item.estoqueMinimo }]">
+                            {{ item.quantidadeEstoque < item.estoqueMinimo ? 'Crítico' : 'Normal' }} 
+                        </span>
+                    </td>
+                    <td class="acoes">
+                        <button class="btn-editar"><i class="fas fa-pencil-alt"></i></button>
+                        <button class="btn-excluir"><i class="fas fa-trash-alt"></i></button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+  </div>
 </template>
 
 <script setup>
@@ -66,18 +91,35 @@ import { Ingrediente } from '@/stores/ingredientes';
 
 const ingredienteStore = Ingrediente();
 
-// A variável está definida como 'ingredientes'
+const loading = ref(true);
 const ingredientes = ref([]);
-
-//  exibição dos modais
 const showcriaNovaSaida = ref(false);
 const showcriaNovaEntrada = ref(false);
 
-onMounted(async () => {
-    await ingredienteStore.fetchIngredientes();
-    ingredientes.value = ingredienteStore.ingredientes;
-});
 
+const reloadIngredientes = async () => {
+    loading.value = true;
+    try {
+        await ingredienteStore.fetchIngredientes();
+       
+        ingredientes.value = ingredienteStore.ingredientes;
+    } catch (e) {
+        console.error("Falha ao recarregar ingredientes:", e);
+    } finally {
+        loading.value = false;
+    }
+};
+
+
+const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    
+    return new Date(dateString).toLocaleDateString('pt-BR');
+};
+
+onMounted(async () => {
+    await reloadIngredientes();
+});
 </script>
 
 <style scoped>
@@ -117,6 +159,10 @@ table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 15px;
+    /* Adiciona rolagem horizontal se a tabela for muito larga */
+    overflow-x: auto; 
+    display: block; 
+    white-space: nowrap; 
 }
 
 th,
