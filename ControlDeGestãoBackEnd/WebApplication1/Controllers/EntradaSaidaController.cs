@@ -33,6 +33,20 @@ namespace WebApplication1.Controllers.Vitrine
             return Ok(lancamentos);
         }
 
+        
+
+
+        [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+
+            var lancamentos = await _context.Lancamentos
+                .Include(l => l.Produto)
+                .OrderByDescending(l => l.Data)
+                .ToListAsync();
+            return Ok(lancamentos);
+        }
+
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] EntradaSaidaDTO lancamentoDto)
         {

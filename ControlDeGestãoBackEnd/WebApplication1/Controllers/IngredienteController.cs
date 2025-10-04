@@ -12,7 +12,7 @@ namespace WebApplication1.Controllers
 
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    // [Authorize] // Protege este controlador com JWT
     public class IngredienteController : ControllerBase
     {
         private readonly GestaoDbContext _context;
@@ -69,6 +69,47 @@ namespace WebApplication1.Controllers
             return Ok(responseDTO);
         }
 
+        [HttpPost] // NOVO ENDPOINT DE CRIAÇÃO
+        public async Task<ActionResult<IngredienteResponseDTO>> PostIngrediente(IngredienteDTO ingredienteDTO)
+        {
+            // Validação: Verificar se o nome já existe
+            var nomeExistente = await _context.Ingredientes.AnyAsync(i => i.Nome == ingredienteDTO.Nome);
+            if (nomeExistente)
+            {
+                return Conflict("Já existe um ingrediente com este nome.");
+            }
+
+            var ingrediente = new Ingrediente
+            {
+                Nome = ingredienteDTO.Nome,
+                UnidadeMedida = ingredienteDTO.UnidadeMedida,
+                EstoqueMinimo = ingredienteDTO.EstoqueMinimo,
+                FornecedorPadrao = ingredienteDTO.FornecedorPadrao,
+                QuantidadeEstoque = 0m, // Inicializado como zero
+                CustoMedio = 0m,     // Inicializado como zero
+                DataUltimaAtualizacao = DateTime.UtcNow
+            };
+
+            _context.Ingredientes.Add(ingrediente);
+            await _context.SaveChangesAsync();
+
+            var responseDTO = new IngredienteResponseDTO
+            {
+                Id = ingrediente.Id,
+                Nome = ingrediente.Nome,
+                UnidadeMedida = ingrediente.UnidadeMedida,
+                QuantidadeEstoque = ingrediente.QuantidadeEstoque,
+                CustoMedio = ingrediente.CustoMedio,
+                EstoqueMinimo = ingrediente.EstoqueMinimo,
+                FornecedorPadrao = ingrediente.FornecedorPadrao,
+                DataValidadeProxima = ingrediente.DataValidadeProxima,
+                DataUltimaAtualizacao = ingrediente.DataUltimaAtualizacao
+            };
+
+            // Retorna 201 Created com o recurso recém-criado
+            return CreatedAtAction(nameof(GetIngrediente), new { id = ingrediente.Id }, responseDTO);
+        }
+
         [HttpPost("entrada")]
         public async Task<ActionResult<IngredienteResponseDTO>> RegistrarEntradaEstoque(EntradaEstoqueRequestDTO entradaDTO)
         {
@@ -90,14 +131,16 @@ namespace WebApplication1.Controllers
 
             if (novaQuantidadeTotal > 0)
             {
-                ingrediente.CustoMedio = (custoTotalAtual + custoTotalEntrada) / novaQuantidadeTotal;
+                // CORREÇÃO (Custo): Arredonda o CustoMedio para 2 casas decimais
+                ingrediente.CustoMedio = Math.Round((custoTotalAtual + custoTotalEntrada) / novaQuantidadeTotal, 2);
             }
             else
             {
-                ingrediente.CustoMedio = 0;
+                ingrediente.CustoMedio = 0m;
             }
 
-            ingrediente.QuantidadeEstoque = novaQuantidadeTotal;
+            // CORREÇÃO (Estoque): Arredonda a quantidade de estoque para 2 casas decimais
+            ingrediente.QuantidadeEstoque = Math.Round(novaQuantidadeTotal, 2);
             ingrediente.DataUltimaAtualizacao = DateTime.UtcNow;
 
             if (entradaDTO.DataValidade.HasValue)
@@ -108,25 +151,24 @@ namespace WebApplication1.Controllers
                 }
             }
 
-            
+            // Adiciona o lançamento no histórico
             var novoLancamento = new LancamentoIngrediente
             {
                 IngredienteId = ingrediente.Id,
                 Quantidade = entradaDTO.QuantidadeEntrada,
                 CustoUnitario = entradaDTO.CustoUnitario,
-                Tipo = "entrada", 
+                Tipo = "entrada",
                 DataEntrada = DateTime.UtcNow
             };
-
             _context.LancamentosIngredientes.Add(novoLancamento);
-            
 
             try
             {
                 await _context.SaveChangesAsync();
             }
-            catch (DbUpdateConcurrencyException)
+            catch (DbUpdateConcurrencyException ex)
             {
+                Console.WriteLine($"ERRO DE CONCORRÊNCIA (Entrada): {ex.Message}");
                 if (!IngredienteExists(ingrediente.Id))
                 {
                     return NotFound("Ingrediente não encontrado durante a atualização da entrada.");
@@ -135,6 +177,11 @@ namespace WebApplication1.Controllers
                 {
                     throw;
                 }
+            }
+            catch (Exception ex) // CAPTURA DE ERROS GERAIS
+            {
+                Console.WriteLine($"ERRO GERAL NO SAVE (Entrada): {ex.Message}");
+                return StatusCode(500, new { erro = "Erro interno ao salvar as alterações. Verifique o log do servidor." });
             }
 
             var responseDTO = new IngredienteResponseDTO
@@ -202,18 +249,17 @@ namespace WebApplication1.Controllers
                 return BadRequest("Estoque insuficiente para a quantidade de saída solicitada.");
             }
 
-            
-            ingrediente.QuantidadeEstoque -= saidaDTO.QuantidadeSaida;
+            // CORREÇÃO: Arredonda a quantidade de estoque após a subtração
+            ingrediente.QuantidadeEstoque = Math.Round(ingrediente.QuantidadeEstoque - saidaDTO.QuantidadeSaida, 2);
             ingrediente.DataUltimaAtualizacao = DateTime.UtcNow;
 
-            
             var novoLancamento = new LancamentoIngrediente
             {
                 IngredienteId = ingrediente.Id,
                 Quantidade = saidaDTO.QuantidadeSaida,
-                CustoUnitario = ingrediente.CustoMedio, 
+                CustoUnitario = ingrediente.CustoMedio,
                 Tipo = "saida",
-                DataEntrada = DateTime.UtcNow 
+                DataEntrada = DateTime.UtcNow
             };
 
             _context.LancamentosIngredientes.Add(novoLancamento);
@@ -224,7 +270,7 @@ namespace WebApplication1.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!IngredienteExists(ingrediente.Id))
+                if (!IngredienteExists(saidaDTO.IdIngrediente))
                 {
                     return NotFound("Ingrediente não encontrado durante a atualização da saída.");
                 }
@@ -233,11 +279,14 @@ namespace WebApplication1.Controllers
                     throw;
                 }
             }
+            catch (Exception ex) // CAPTURA DE ERROS GERAIS
+            {
+                Console.WriteLine($"ERRO GERAL NO SAVE (Saída): {ex.Message}");
+                return StatusCode(500, new { erro = "Erro interno ao salvar as alterações. Verifique o log do servidor." });
+            }
 
-            
             return Ok(new { Mensagem = "Saída de estoque registrada com sucesso." });
         }
-
 
 
         [HttpDelete("{id}")]

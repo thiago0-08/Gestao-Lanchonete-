@@ -8,7 +8,7 @@ namespace WebApplication1.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    //[Authorize]
     public class RelatorioController : ControllerBase
     {
         private readonly RelatorioService _relatorioService;

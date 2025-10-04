@@ -9,7 +9,7 @@ namespace WebApplication1.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    //[Authorize]
     public class NovoProdutoController : ControllerBase
     {
         private readonly GestaoDbContext _context;

@@ -7,7 +7,7 @@ namespace WebApplication1.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize]
+    //[Authorize]
     public class VendasController : ControllerBase
     {
         private readonly VendasService _vendasService;
