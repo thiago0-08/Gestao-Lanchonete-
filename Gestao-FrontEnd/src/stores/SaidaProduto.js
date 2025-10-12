@@ -7,7 +7,7 @@ export const useSaidaStore = defineStore('saida', () => {
 
     async function addSaida(inputPayload) {
         try {
-            // Objeto que representa o DTO esperado pela API
+         
             const saidaRequest = {
                 idIngrediente: inputPayload.idIngrediente,
                 quantidadeSaida: inputPayload.quantidade,
@@ -15,7 +15,6 @@ export const useSaidaStore = defineStore('saida', () => {
 
             console.log('Enviando Payload Corrigido:', saidaRequest);
 
-            // **CORREÇÃO:** Enviamos o objeto 'saidaRequest' diretamente.
             const response = await axios.post(API_URL, saidaRequest);
 
             console.log('Saída registrada com sucesso!', response.data);

@@ -67,6 +67,25 @@ namespace WebApplication1.Controllers
             return CreatedAtAction(nameof(ObterPedido), new { id = pedido.Id }, pedido);
         }
 
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<CriaPedido>>> GetPedidos()
+        {
+            var pedidos = await _context.Pedidos
+                                        .Include(p => p.Itens)
+                                        .ThenInclude(item => item.Produto)
+                                        .OrderByDescending(p => p.DataPedido)
+                                        .ToListAsync();
+
+            if (pedidos == null || !pedidos.Any())
+            {
+                return NotFound("Nenhum pedido encontrado.");
+            }
+
+            return Ok(pedidos);
+        }
+
+
+
         [HttpGet("{id}")]
         public async Task<IActionResult> ObterPedido(int id)
         {

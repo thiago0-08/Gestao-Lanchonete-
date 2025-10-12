@@ -2,40 +2,48 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import axios from 'axios';
 
-export const aletaEstoque = defineStore('alertaEstoque', () => {
+export const useAlertaEstoqueStore = defineStore('alertaEstoque', () => {
   const alertaEstoque = ref(false); 
-  const mensagem = ref(''); 
-  const quantidade = ref(0); 
+  const mensagem = ref('');          // Mensagem de alerta
+  const quantidade = ref(0);         // Número de itens com estoque baixo
+  const itensComAlerta = ref([]);
 
-  function setAlertaEstoque(value) {
-    alertaEstoque.value = value;
-  }
 
   async function fetchAlertaEstoque() {
     try {
       const response = await axios.get('http://localhost:5138/api/Alerta/estoque');
-      
-      const apiMessage = response.data.mensagem;
+      const data = response.data;
 
 
-      if (apiMessage.includes("Nenhum alerta")) {
-        alertaEstoque.value = false;
-        quantidade.value = 0;
-        mensagem.value = apiMessage;
-      } else {
+      if (Array.isArray(data)) {
         
-        alertaEstoque.value = true;
-       
-        quantidade.value = response.data.quantidade || 0; 
-        mensagem.value = apiMessage;
+        if (data.length > 0) {
+          alertaEstoque.value = true;
+          quantidade.value = data.length;
+          itensComAlerta.value = data; 
+          mensagem.value = `${data.length} iten(s) com estoque baixo ou zerado.`;
+        } 
+  
+        else {
+          alertaEstoque.value = false;
+          quantidade.value = 0;
+          itensComAlerta.value = []; 
+          mensagem.value = "Nenhum alerta de estoque. Tudo em ordem!";
+        }
+      } 
+      else {
+        throw new Error("Formato de resposta inesperado da API.");
       }
+
     } catch (error) {
       console.error("Erro ao buscar alertas de estoque:", error);
       alertaEstoque.value = false; 
       quantidade.value = 0;
-      mensagem.value = "Erro ao carregar dados.";
+      itensComAlerta.value = [];
+      mensagem.value = "Erro ao carregar dados de alerta.";
     }
   }
 
-  return { alertaEstoque, mensagem, quantidade, setAlertaEstoque, fetchAlertaEstoque };
+
+  return { alertaEstoque, mensagem, quantidade, itensComAlerta, fetchAlertaEstoque };
 });

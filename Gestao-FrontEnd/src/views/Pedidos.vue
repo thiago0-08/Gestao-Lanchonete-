@@ -54,7 +54,7 @@
                                 {{ pedido.status }}
                             </span>
                         </td>
-                        <td>R$ {{ pedido.total.toFixed(2) }}</td>
+                        <td>R$ {{ pedido.valorTotal?.toFixed(2) ?? '0.00' }}</td>
                         <td class="acoes">
                             <button class="btn-editar"><i class="fas fa-pencil-alt"></i></button>
                             <button class="btn-excluir" @click="pedidosStore.deletePedido(pedido.id)"><i

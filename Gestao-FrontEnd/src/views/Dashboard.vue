@@ -102,10 +102,10 @@
 <script setup>
 import { onMounted, ref } from 'vue';
 import Ultimos7dias from '@/components/graficos/Ultimos7dias.vue';
-import { aletaEstoque } from '../stores/alertaEstoque';
+import { useAlertaEstoqueStore } from '../stores/alertaEstoque';
 import { Ingrediente } from '@/stores/ingredientes';
 
-const store = aletaEstoque();
+const store = useAlertaEstoqueStore();
 const ingredienteStore = Ingrediente();
 const ingredientes = ref([]);
 
