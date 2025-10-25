@@ -103,10 +103,10 @@
 import { onMounted, ref } from 'vue';
 import Ultimos7dias from '@/components/graficos/Ultimos7dias.vue';
 import { useAlertaEstoqueStore } from '../stores/alertaEstoque';
-import { Ingrediente } from '@/stores/ingredientes';
+import { useIngredientesStore } from '@/stores/ingredientes';
 
 const store = useAlertaEstoqueStore();
-const ingredienteStore = Ingrediente();
+const ingredienteStore = useIngredientesStore();
 const ingredientes = ref([]);
 
 const isTooltipVisible = ref(false);
@@ -116,16 +116,16 @@ const showTooltip = () => {
   isTooltipVisible.value = true;
 };
 
-// Função para esconder o tooltip
 const hideTooltip = () => {
   isTooltipVisible.value = false;
 };
 
+
 onMounted(async () => {
-  // Chamadas de API para o alerta de estoque
+  //  API   alerta de estoque
   await store.fetchAlertaEstoque();
   
-  // Chamada de API para os ingredientes
+  //  API  ingredientes
   await ingredienteStore.fetchIngredientes();
   ingredientes.value = ingredienteStore.ingredientes;
 });

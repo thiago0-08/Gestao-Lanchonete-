@@ -19,6 +19,8 @@ namespace Database;
     public DbSet<LancamentoIngrediente> LancamentosIngredientes { get; set; }
     public DbSet<Usuario> Usuarios { get; set; }
 
+   
+
 
 
 

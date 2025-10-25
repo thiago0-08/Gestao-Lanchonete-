@@ -38,10 +38,10 @@
 
 import { ref, onMounted } from 'vue';
 import { useSaidaStore } from '../../stores/SaidaProduto.js';
-import { Ingrediente } from '@/stores/ingredientes';
+import { useIngredientesStore } from '@/stores/ingredientes';
 
 const saidaStore = useSaidaStore(); // <-- CORRIGIDO
-const ingredienteStore = Ingrediente();
+const ingredienteStore = useIngredientesStore();
 
 const produtoNome = ref('');
 const quantidade = ref(0);

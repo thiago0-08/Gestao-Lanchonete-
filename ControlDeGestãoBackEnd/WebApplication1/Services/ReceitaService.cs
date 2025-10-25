@@ -114,6 +114,14 @@ public class ReceitaService : IReceitaService
         };
     }
 
+    public async Task<IEnumerable<Receita>> ObterTodasReceitasAsync()
+    {
+        return await _context.Receitas
+                             .Include(r => r.Itens)
+                             .ThenInclude(item => item.Ingrediente)
+                             .ToListAsync();
+    }
+
     public async Task<CustoProdutoDTO> CalcularCustoProdutoAsync(int produtoId)
     {
         var produto = await _context.Produtos.FindAsync(produtoId);

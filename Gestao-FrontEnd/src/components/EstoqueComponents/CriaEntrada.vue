@@ -48,11 +48,11 @@
 
 import { ref, onMounted } from 'vue';
 import { useEntradaStore } from '../../stores/EntradaProduto.js'; 
-import { Ingrediente } from '@/stores/ingredientes';
+import { useIngredientesStore } from '@/stores/ingredientes';
 
 
 const entradaStore = useEntradaStore(); 
-const ingredienteStore = Ingrediente();
+const ingredienteStore = useIngredientesStore();
 
 
 const produtoNome = ref('');

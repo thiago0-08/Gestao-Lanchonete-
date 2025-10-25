@@ -59,6 +59,13 @@ namespace WebApplication1.Controllers
             }
         }
 
+        [HttpGet]
+        public async Task<IActionResult> ObterTodasReceitas()
+        {
+            var receitas = await _receitaService.ObterTodasReceitasAsync();
+            return Ok(receitas);
+        }
+
         [HttpPut("{id}")]
         public async Task<IActionResult> AtualizarReceita(int id, [FromBody] ReceitaDTO dto)
         {

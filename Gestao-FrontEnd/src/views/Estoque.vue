@@ -87,9 +87,9 @@
 import { ref, onMounted } from 'vue';
 import CriaSaida from '@/components/EstoqueComponents/CriaSaida.vue';
 import CriaEntrada from '@/components/EstoqueComponents/CriaEntrada.vue';
-import { Ingrediente } from '@/stores/ingredientes';
+import { useIngredientesStore } from '@/stores/ingredientes';
 
-const ingredienteStore = Ingrediente();
+const ingredienteStore = useIngredientesStore();
 
 const loading = ref(true);
 const ingredientes = ref([]);

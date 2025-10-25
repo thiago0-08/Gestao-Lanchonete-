@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import axios from 'axios';
 
-export const Ingrediente = defineStore('ingredientes', () => {
+export const useIngredientesStore = defineStore('ingredientes', () => {
     const ingredientes = ref([]);
 
     async function fetchIngredientes() {
