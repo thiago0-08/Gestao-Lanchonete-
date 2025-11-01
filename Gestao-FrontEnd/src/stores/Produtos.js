@@ -2,12 +2,11 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import axios from 'axios';
 
-// Verifique se esta URL está correta (sem aspas extras)
+
 const API_URL = 'http://localhost:5138/api/NovoProduto';
 
 export const useProdutosStore = defineStore('produtos', () => {
-
-    // CORREÇÃO 1: Garanta que 'produtos' sempre comece como um array.
+    
     const produtos = ref([]);
     const loading = ref(false);
     const error = ref(null);
@@ -17,46 +16,73 @@ export const useProdutosStore = defineStore('produtos', () => {
         error.value = null;
         try {
             const response = await axios.get(API_URL);
-            const data = response.data; // Pega a resposta da API
-
-            // --- A CORREÇÃO ESTÁ AQUI ---
-            // Verificamos se a resposta é um objeto e se tem a propriedade 'products'
+            const data = response.data;
             if (data && typeof data === 'object' && Array.isArray(data.products)) {
-                // Se sim, pegamos o array de dentro
                 produtos.value = data.products;
             } else {
-                // Se a API retornar um formato que não esperamos
-                console.error('A API /api/Produtos retornou um formato inesperado.', data);
-                produtos.value = []; // Mantém como um array vazio para segurança
+                console.error('A API /api/NovoProduto retornou um formato inesperado.', data);
+                produtos.value = [];
             }
         } catch (err) {
             error.value = 'Erro ao buscar produtos.';
-            produtos.value = []; // Garante que é um array mesmo em caso de erro
+            produtos.value = [];
         } finally {
             loading.value = false;
         }
     }
 
     async function addProduto(novoProduto) {
-        // Esta função agora é segura, pois 'fetchProdutos' 
-        // garantiu que 'produtos.value' é um array.
         try {
             const response = await axios.post(API_URL, novoProduto);
-            // Adiciona o novo produto (que veio da API) ao array local
             produtos.value.push(response.data);
-            return response.data; // Retorna o produto criado
+            return response.data;
         } catch (error) {
             console.error("Erro ao adicionar produto:", error);
             throw new Error('Não foi possível adicionar o produto.');
         }
     }
 
-    // Garanta que tudo está sendo retornado
+    //  FUNÇÃO DE EXCLUIR PRODUTO
+    async function deleteProduto(id) {
+        try {
+            await axios.delete(`${API_URL}/${id}`);
+            // Remove o produto da lista local
+            produtos.value = produtos.value.filter(p => p.id !== id);
+        } catch (err) {
+            console.error("Erro ao excluir produto:", err);
+            throw new Error('Não foi possível excluir o produto.');
+        }
+    }
+
+    // FUNÇÃO DE ATUALIZAR PRODUTO
+    async function updateProduto(id, produtoAtualizado) {
+        try {
+            // O DTO do backend espera 'idCategoria', não o objeto Categoria
+            const payload = {
+                ...produtoAtualizado,
+                idCategoria: produtoAtualizado.categoria.id 
+            };
+            const response = await axios.put(`${API_URL}/${id}`, payload);
+            
+            // Atualiza o produto na lista local
+            const index = produtos.value.findIndex(p => p.id === id);
+            if (index !== -1) {
+                produtos.value[index] = response.data;
+            }
+            return response.data;
+        } catch (error) {
+            console.error("Erro ao atualizar produto:", error);
+            throw new Error('Não foi possível atualizar o produto.');
+        }
+    }
+
     return {
         produtos,
         loading,
         error,
         fetchProdutos,
-        addProduto
+        addProduto,
+        deleteProduto,  
+        updateProduto   
     };
 });

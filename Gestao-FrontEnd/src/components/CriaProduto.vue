@@ -1,7 +1,7 @@
 <template>
     <div class="modal-overlay" @click.self="$emit('close')">
         <div class="modal-container">
-            <h2 class="titulo">Criar Novo Produto</h2>
+            <h2 class="titulo">{{ isEditMode ? 'Editar Produto' : 'Criar Novo Produto' }}</h2>
             <button class="btn-fechar" @click="$emit('close')">X</button>
 
             <div v-if="message" :class="['message', messageType]">
@@ -66,29 +66,42 @@
                 </div>
 
                 <button type="submit" class="btn-enviar" :disabled="loading">
-                    {{ loading ? 'Salvando...' : 'Salvar Produto e Receita' }}
+                    {{ loading ? 'Salvando...' : (isEditMode ? 'Salvar Alterações' : 'Salvar Produto e Receita') }}
                 </button>
             </form>
-        </div>
+            </div>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-// Você precisará de stores para Produtos, Receitas, Categorias e Ingredientes
+import { ref, onMounted, computed } from 'vue';
 import { useProdutosStore } from '../stores/Produtos';
 import { useReceitasStore } from '../stores/receitas';
 import { useCategoriasStore } from '../stores/categorias';
 import { useIngredientesStore } from '../stores/ingredientes';
 
+// 1. Definir os props que o componente aceita
+const props = defineProps({
+  produtoParaEditar: {
+    type: Object,
+    default: null
+  },
+  receitaParaEditar: {
+    type: Object,
+    default: null
+  }
+});
+
 const emit = defineEmits(['close']);
+
+// 2. Definir se estamos em modo de edição
+const isEditMode = computed(() => props.produtoParaEditar !== null);
 
 // Instanciando as stores
 const produtosStore = useProdutosStore();
 const receitasStore = useReceitasStore();
 const categoriasStore = useCategoriasStore();
 const ingredientesStore = useIngredientesStore();
-
 
 // State para os formulários
 const produto = ref({
@@ -100,6 +113,7 @@ const produto = ref({
 });
 
 const receita = ref({
+  id: null, // Importante para a atualização
   nome: '',
   produtoId: 0,
   itens: []
@@ -120,13 +134,38 @@ const messageType = ref('');
 const categorias = ref([]);
 const ingredientes = ref([]);
 
-// Busca dados iniciais (categorias e ingredientes) ao montar o componente
+// 3. Atualizar o onMounted
 onMounted(async () => {
+  // Busca dados dos dropdowns
   await categoriasStore.fetchCategorias();
   categorias.value = categoriasStore.categorias;
 
   await ingredientesStore.fetchIngredientes();
   ingredientes.value = ingredientesStore.ingredientes;
+
+  // Se estiver em modo de edição, preenche os formulários
+  if (isEditMode.value) {
+    // Preenche o formulário de produto
+    produto.value = {
+      nome: props.produtoParaEditar.nome,
+      descricao: props.produtoParaEditar.descricao,
+      preco: props.produtoParaEditar.preco,
+      idCategoria: props.produtoParaEditar.categoria.id, // O backend espera o ID
+      imagem: props.produtoParaEditar.imagem
+    };
+
+    // Preenche o formulário de receita, se ela existir
+    if (props.receitaParaEditar) {
+      receita.value = {
+        id: props.receitaParaEditar.id,
+        nome: props.receitaParaEditar.nome,
+        produtoId: props.receitaParaEditar.produtoId,
+        // Garante que os itens sejam uma cópia (para evitar reatividade cruzada)
+        itens: JSON.parse(JSON.stringify(props.receitaParaEditar.itens || []))
+      };
+      mostrarReceita.value = true;
+    }
+  }
 });
 
 function getNomeIngrediente(id) {
@@ -139,6 +178,9 @@ function adicionarIngrediente() {
     alert('Selecione um ingrediente e informe uma quantidade válida.');
     return;
   }
+  // Garante que a quantidade seja um número
+  novoIngrediente.value.quantidade = parseFloat(novoIngrediente.value.quantidade) || 0;
+  
   receita.value.itens.push({ ...novoIngrediente.value });
   novoIngrediente.value = { ingredienteId: '', quantidade: 0 };
 }
@@ -147,7 +189,7 @@ function removerIngrediente(index) {
   receita.value.itens.splice(index, 1);
 }
 
-// Função principal de submissão
+// 4. Atualizar a Função de Salvar
 async function salvarProdutoEReceita() {
   if (!produto.value.nome || produto.value.preco <= 0 || !produto.value.idCategoria) {
       message.value = 'Preencha os campos obrigatórios do produto.';
@@ -159,24 +201,40 @@ async function salvarProdutoEReceita() {
   message.value = '';
 
   try {
-    // Passo 1: Criar o produto
-    const produtoCriado = await produtosStore.addProduto(produto.value);
-    
-    // Passo 2: Se a receita estiver visível e tiver itens, criá-la
-    if (mostrarReceita.value && receita.value.itens.length > 0) {
-      // Associa o ID do produto recém-criado à receita
-      receita.value.produtoId = produtoCriado.id;
-      // Define um nome padrão para a receita se não for preenchido
-      if (!receita.value.nome) {
-        receita.value.nome = `Receita para ${produtoCriado.nome}`;
-      }
+    if (isEditMode.value) {
+      // --- LÓGICA DE ATUALIZAÇÃO (EDITAR) ---
       
-      await receitasStore.addReceita(receita.value);
+      // 1. Atualiza o produto
+      // O ID vem do prop, não do 'produto.value'
+      await produtosStore.updateProduto(props.produtoParaEditar.id, produto.value);
+      
+      // 2. Atualiza a receita (se ela existir)
+      if (mostrarReceita.value && receita.value.id) {
+        receita.value.produtoId = props.produtoParaEditar.id; // Garante a consistência
+        await receitasStore.updateReceita(receita.value.id, receita.value);
+      }
+      // Opcional: criar uma receita se ela não existia antes
+
+      message.value = 'Produto atualizado com sucesso!';
+      
+    } else {
+      // --- LÓGICA DE CRIAÇÃO (NOVO) ---
+      
+      // 1. Criar o produto
+      const produtoCriado = await produtosStore.addProduto(produto.value);
+      
+      // 2. Se a receita estiver visível e tiver itens, criá-la
+      if (mostrarReceita.value && receita.value.itens.length > 0) {
+        receita.value.produtoId = produtoCriado.id;
+        if (!receita.value.nome) {
+          receita.value.nome = `Receita para ${produtoCriado.nome}`;
+        }
+        await receitasStore.addReceita(receita.value);
+      }
+      message.value = 'Produto e receita salvos com sucesso!';
     }
 
-    message.value = 'Produto e receita salvos com sucesso!';
     messageType.value = 'success';
-    
     setTimeout(() => emit('close'), 2000);
 
   } catch (error) {
@@ -213,6 +271,9 @@ async function salvarProdutoEReceita() {
   position: relative;
   box-shadow: 0 5px 25px rgba(0, 0, 0, 0.2);
   animation: fadeIn 0.3s ease-in-out;
+  /* Adicionado para rolagem interna em telas pequenas */
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 /* === ANIMAÇÕES === */

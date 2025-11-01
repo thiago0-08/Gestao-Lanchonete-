@@ -5,20 +5,24 @@
     <div class="info-receitas dashboard-card">
       <div class="filtros">
         <div class="filter-group">
-          <label for="categoria-filtro">Categoria:</label>
+          <!-- <label for="categoria-filtro">Categoria:</label>
           <select id="categoria-filtro" v-model="categoriaSelecionada">
             <option value="">Todas</option>
             <option v-for="categoria in categorias" :key="categoria.id" :value="categoria.id">
               {{ categoria.nome }}
             </option>
-          </select>
+          </select> -->
         </div>
       </div>
-      <button class="btn-novo-pedido" @click="showcriaNovoReceita = true"> + Novo Produto </button>
+      <button class="btn-novo-pedido" @click="abrirModalParaCriar"> + Novo Produto </button>
     </div>
 
-    <div v-if="showcriaNovoReceita">
-      <CriaProduto @close="showcriaNovoReceita = false" />
+    <div v-if="showModalProduto">
+      <CriaProduto 
+        @close="fecharModal" 
+        :produtoParaEditar="produtoParaEditar"
+        :receitaParaEditar="receitaParaEditar"
+      />
     </div>
 
     <div v-if="loading" class="loading-message">Carregando produtos...</div>
@@ -48,51 +52,51 @@
         </div>
 
         <div class="botoes-acao">
-          <button class="btn-editar-item">Editar</button>
-          <button class="btn-excluir-item">Excluir</button>
+          <button class="btn-editar-item" @click.stop="abrirModalParaEditar(produto)">Editar</button>
+          <button class="btn-excluir-item" @click.stop="handleExcluir(produto.id)">Excluir</button>
         </div>
       </div>
     </div>
-  </div>
+    </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed } from 'vue';
-import { storeToRefs } from 'pinia'; // 1. Importe o storeToRefs
+import { storeToRefs } from 'pinia';
 import CriaProduto from '../components/CriaProduto.vue';
 import { useProdutosStore } from '../stores/Produtos';
 import { useReceitasStore } from '../stores/receitas';
 import { useCategoriasStore } from '../stores/categorias';
-// 2. CORRIJA a importação da store de ingredientes
 import { useIngredientesStore } from '../stores/ingredientes';
 
 // Instanciando as stores
 const produtosStore = useProdutosStore();
 const receitasStore = useReceitasStore();
 const categoriasStore = useCategoriasStore();
-// 3. CORRIJA a instanciação da store de ingredientes
 const ingredientesStore = useIngredientesStore();
 
-// 4. Use storeToRefs para manter a reatividade dos dados da store
-// Isso cria refs locais que apontam para o estado da store
+// Usando storeToRefs para manter a reatividade
 const { produtos } = storeToRefs(produtosStore);
 const { receitas } = storeToRefs(receitasStore);
 const { categorias } = storeToRefs(categoriasStore);
 const { ingredientes } = storeToRefs(ingredientesStore);
 
 // State do componente
-const showcriaNovoReceita = ref(false);
 const loading = ref(false);
 const error = ref(null);
 const produtoSelecionadoId = ref(null);
 const categoriaSelecionada = ref('');
+
+// State para o modal
+const showModalProduto = ref(false);
+const produtoParaEditar = ref(null);
+const receitaParaEditar = ref(null);
 
 // Carrega todos os dados necessários da API
 onMounted(async () => {
   loading.value = true;
   error.value = null;
   try {
-    // 5. As stores agora gerenciam seus próprios dados, não precisamos copiá-los
     await Promise.all([
       produtosStore.fetchProdutos(),
       receitasStore.fetchReceitas(),
@@ -110,8 +114,7 @@ onMounted(async () => {
 // Lógica para filtrar os produtos
 const produtosFiltrados = computed(() => {
   if (!categoriaSelecionada.value) {
-    // 6. Use 'produtos.value' (do storeToRefs) diretamente
-    return produtos.value; 
+    return produtos.value;
   }
   return produtos.value.filter(p => p.idCategoria === categoriaSelecionada.value);
 });
@@ -128,7 +131,6 @@ function getNomeIngrediente(id) {
 }
 
 function getReceitaDoProduto(produtoId) {
-  // 7. Acessa 'receitas.value' (do storeToRefs)
   return receitas.value.find(r => r.produtoId === produtoId);
 }
 
@@ -139,11 +141,47 @@ function selecionarProduto(id) {
     produtoSelecionadoId.value = id;
   }
 }
+
+// Funções para controlar o modal
+function abrirModalParaCriar() {
+  produtoParaEditar.value = null;
+  receitaParaEditar.value = null;
+  showModalProduto.value = true;
+}
+
+function abrirModalParaEditar(produto) {
+  const receitaDoProduto = getReceitaDoProduto(produto.id);
+  produtoParaEditar.value = produto;
+  receitaParaEditar.value = receitaDoProduto;
+  showModalProduto.value = true;
+}
+
+function fecharModal() {
+  showModalProduto.value = false;
+  produtoParaEditar.value = null;
+  receitaParaEditar.value = null;
+  
+  // Recarrega os dados para refletir as mudanças
+  produtosStore.fetchProdutos();
+  receitasStore.fetchReceitas();
+}
+
+async function handleExcluir(id) {
+  // O .stop impede que o card seja selecionado
+  if (window.confirm('Tem certeza que deseja excluir este produto? A receita associada também será afetada.')) {
+    try {
+      await produtosStore.deleteProduto(id);
+      // mostrar uma mensagem de sucesso
+    } catch (error) {
+      console.error(error.message);
+      // mostrar uma mensagem de erro
+    }
+  }
+}
 </script>
 
 <style scoped>
 /* (Mantenha todos os seus estilos .css aqui) */
-/* Adicionei alguns estilos novos para a interatividade */
 .container {
   margin-left: 250px;
   padding: 20px;
