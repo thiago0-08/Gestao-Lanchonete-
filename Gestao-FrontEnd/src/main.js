@@ -4,10 +4,16 @@ import App from './App.vue';
 import router from './router';
 import axios from 'axios';
 
-// Pega o token do localStorage
+
+import { library } from '@fortawesome/fontawesome-svg-core';
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome';
+import { faEye, faPencilAlt, faTrashAlt } from '@fortawesome/free-solid-svg-icons';
+
+
+library.add(faEye, faPencilAlt, faTrashAlt);
+
 const token = localStorage.getItem('authToken');
 
-// configura o header de autorização globalmente
 if (token) {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 }
@@ -16,5 +22,8 @@ const app = createApp(App);
 
 app.use(createPinia());
 app.use(router);
+
+
+app.component('font-awesome-icon', FontAwesomeIcon);
 
 app.mount('#app');

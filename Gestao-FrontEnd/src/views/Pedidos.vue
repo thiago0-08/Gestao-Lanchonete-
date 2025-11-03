@@ -1,88 +1,214 @@
 <template>
-    <div class="container">
-        <h1>Gestão de Pedidos</h1>
+  <div class="container">
+    <h1>Gestão de Pedidos</h1>
 
-        <div class="info-pedidos dashboard-card">
-            <div class="filtros">
-                <div class="filter-group">
-                    <label for="status">Status:</label>
-                    <select id="status">
-                        <option value="">Todos</option>
-                        <option value="pendente">Pendente</option>
-                        <option value="em andamento">Em Andamento</option>
-                        <option value="concluido">Concluído</option>
-                    </select>
-                </div>
-                <div class="filter-group">
-                    <label for="data-inicial">Data Inicial:</label>
-                    <input type="date" id="data-inicial">
-                </div>
-                <button class="btn-filtrar">Filtrar</button>
-            </div>
-            <button class="btn-novo-pedido" @click="showCriaNovoPedido = true">+ Novo Pedido</button>
+    <div class="info-pedidos dashboard-card">
+      <div class="filtros">
+        <div class="filter-group">
+          <label for="status">Status:</label>
+          <select id="status" v-model="statusSelecionado">
+            <option value="">Todos</option>
+            <option v-for="status in statusOptions" :key="status.value" :value="status.value">
+              {{ status.texto }}
+            </option>
+          </select>
         </div>
-
-        <div v-if="showCriaNovoPedido">
-            <CriaPedido @close="showCriaNovoPedido = false" />
+        <div class="filter-group">
+          <label for="data-filtro">Filtrar por Data:</label>
+          <input type="date" id="data-filtro" v-model="dataSelecionada">
         </div>
+      </div>
+      <button class="btn-novo-pedido" @click="showCriaNovoPedido = true">+ Novo Pedido</button>
+    </div>
 
-        <div class="tabela-pedidos dashboard-card">
-            <div v-if="pedidosStore.loading">
-                <p>Carregando pedidos...</p>
+    <div v-if="showCriaNovoPedido">
+      <CriaPedido @close="fecharModalCriacao" />
+    </div>
+
+    <div class="tabela-pedidos dashboard-card">
+      <div v-if="loading">
+        <p>Carregando pedidos...</p>
+      </div>
+      <div v-else-if="error">
+        <p class="error-message">{{ error }}</p>
+      </div>
+      <div v-else-if="pedidosFiltrados.length === 0">
+        <p>Nenhum pedido encontrado para os filtros selecionados.</p>
+      </div>
+      <table v-else>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Cliente</th>
+            <th>Data</th>
+            <th>Status</th>
+            <th>Total</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="pedido in pedidosFiltrados" :key="pedido.id">
+            <td>{{ pedido.id }}</td>
+            <td>{{ pedido.nomeCliente || 'Não informado' }}</td>
+            <td>{{ formatarData(pedido.dataPedido) }}</td>
+            <td>
+              <span :class="['status-badge', formatarStatusClass(pedido.status)]">
+                {{ pedido.status }}
+              </span>
+            </td>
+            <td>R$ {{ pedido.valorTotal?.toFixed(2) ?? '0.00' }}</td>
+            <td class="acoes">
+              <button class="btn-detalhes" @click="verDetalhes(pedido)">
+                <font-awesome-icon icon="fa-solid fa-eye" />
+              </button>
+              <button class="btn-editar" @click="handleMudarStatus(pedido)">
+                <font-awesome-icon icon="fa-solid fa-pencil-alt" />
+              </button>
+              <button class="btn-excluir" @click="handleExcluir(pedido.id)">
+                <font-awesome-icon icon="fa-solid fa-trash-alt" />
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div v-if="pedidoSelecionado" class="modal-overlay" @click.self="fecharDetalhes">
+        <div class="modal-container">
+            <h2 class="titulo">Detalhes do Pedido #{{ pedidoSelecionado.id }}</h2>
+            <button class="btn-fechar" @click="fecharDetalhes">X</button>
+            
+            <div class="detalhes-pedido">
+                <p><strong>Cliente:</strong> {{ pedidoSelecionado.nomeCliente || 'Não informado' }}</p>
+                <p><strong>Telefone:</strong> {{ pedidoSelecionado.telefoneContato || 'Não informado' }}</p>
+                <p><strong>Endereço:</strong> {{ pedidoSelecionado.enderecoEntrega || 'Não informado' }}</p>
+                <p><strong>Data:</strong> {{ formatarData(pedidoSelecionado.dataPedido) }}</p>
+                <p><strong>Status:</strong> {{ pedidoSelecionado.status }}</p>
+                
+                <h4 class="titulo-itens">Itens do Pedido:</h4>
+                <ul class="lista-itens">
+                    <li v-for="item in pedidoSelecionado.itens" :key="item.id">
+                        <span>{{ item.produto.nome }}</span>
+                        <span>(Qtd: {{ item.quantidade }} | Vl. Unit: R$ {{ item.precoUnitario.toFixed(2) }})</span>
+                    </li>
+                </ul>
+                
+                <hr>
+                <p><strong>Subtotal:</strong> R$ {{ calcularSubtotal(pedidoSelecionado).toFixed(2) }}</p>
+                <p><strong>Taxa de Entrega:</strong> R$ {{ pedidoSelecionado.valorEntrega.toFixed(2) }}</p>
+                <p class="total-pedido"><strong>Total:</strong> R$ {{ pedidoSelecionado.valorTotal.toFixed(2) }}</p>
             </div>
-            <div v-else-if="pedidosStore.error">
-                <p class="error-message">{{ pedidosStore.error }}</p>
-            </div>
-            <table v-else>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Cliente</th>
-                        <th>Data</th>
-                        <th>Status</th>
-                        <th>Total</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr v-for="pedido in pedidosStore.pedidos" :key="pedido.id">
-                        <td>{{ pedido.id }}</td>
-                        <td>{{ pedido.cliente }}</td>
-                        <td>{{ new Date(pedido.data).toLocaleDateString() }}</td>
-                        <td>
-                            <span :class="['status-badge', pedido.status.toLowerCase().replace(/ /g, '-')]">
-                                {{ pedido.status }}
-                            </span>
-                        </td>
-                        <td>R$ {{ pedido.valorTotal?.toFixed(2) ?? '0.00' }}</td>
-                        <td class="acoes">
-                            <button class="btn-editar"><i class="fas fa-pencil-alt"></i></button>
-                            <button class="btn-excluir" @click="pedidosStore.deletePedido(pedido.id)"><i
-                                    class="fas fa-trash-alt"></i></button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
         </div>
     </div>
+
+  </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { storeToRefs } from 'pinia';
 import CriaPedido from '@/components/CriaPedido.vue';
 import { usePedidosStore } from '@/stores/pedidos';
 
 const showCriaNovoPedido = ref(false);
 const pedidosStore = usePedidosStore();
+const { pedidos, loading, error } = storeToRefs(pedidosStore);
 
-// Chamada à API para buscar os pedidos ao montar o componente
+const statusSelecionado = ref('');
+const dataSelecionada = ref('');
+const pedidoSelecionado = ref(null);
+
+const statusOptions = ref([
+  { value: 'Pendente', texto: 'Pendente' },
+  { value: 'EmPreparacao', texto: 'Em Preparação' },
+  { value: 'Entregue', texto: 'Entregue' },
+  { value: 'Cancelado', texto: 'Cancelado' }
+]);
+
 onMounted(() => {
-    pedidosStore.fetchPedidos();
+  pedidosStore.fetchPedidos();
 });
+
+const pedidosFiltrados = computed(() => {
+  return pedidos.value.filter(pedido => {
+    const filtroStatus = !statusSelecionado.value || pedido.status === statusSelecionado.value;
+    let filtroData = true;
+    if (dataSelecionada.value) {
+      const dataPedido = new Date(pedido.dataPedido).setHours(0, 0, 0, 0);
+      const [year, month, day] = dataSelecionada.value.split('-').map(Number);
+      const dataFiltro = new Date(year, month - 1, day).setHours(0, 0, 0, 0);
+      filtroData = (dataPedido === dataFiltro);
+    }
+    return filtroStatus && filtroData;
+  });
+});
+
+function formatarData(dateString) {
+  if (!dateString) return 'N/A';
+  return new Date(dateString).toLocaleDateString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric'
+  });
+}
+
+function formatarStatusClass(status) {
+ 
+  if (status === 'EmPreparacao') return 'empreparacao';
+  return status.toLowerCase().replace(/ /g, '-');
+}
+
+function verDetalhes(pedido) {
+  pedidoSelecionado.value = pedido;
+}
+function fecharDetalhes() {
+  pedidoSelecionado.value = null;
+}
+
+function fecharModalCriacao() {
+  showCriaNovoPedido.value = false;
+  pedidosStore.fetchPedidos();
+}
+
+async function handleExcluir(id) {
+  if (window.confirm('Tem certeza que deseja excluir este pedido?')) {
+    try {
+      await pedidosStore.deletePedido(id);
+    } catch (err) {
+      alert('Erro ao excluir o pedido.');
+    }
+  }
+}
+
+// funcao para muda o status do pedido
+async function handleMudarStatus(pedido) {
+  const listaStatus = statusOptions.value.map(s => s.value).join(', ');
+  const novoStatus = window.prompt(`Digite o novo status para o pedido #${pedido.id} (ex: Pendente, EmPreparacao, Entregue, Cancelado):`, pedido.status);
+
+
+  if (!novoStatus) {
+    return; //se o usuario cancelou
+  }
+
+  // Validação 
+  const statusValido = statusOptions.value.find(s => s.value.toLowerCase() === novoStatus.toLowerCase());
+  if (!statusValido) {
+    alert(`Status inválido! Por favor, use um dos seguintes: ${listaStatus}`);
+    return;
+  }
+
+  try {
+    // Usamos o 'statusValido.value' para garantir o case correto (ex: 'EmPreparacao')
+    await pedidosStore.mudarStatusPedido(pedido.id, statusValido.value);
+  } catch (err) {
+    alert('Erro ao mudar o status do pedido.');
+  }
+}
+
+function calcularSubtotal(pedido) {
+  return pedido.itens.reduce((total, item) => total + (item.precoUnitario * item.quantidade), 0);
+}
 </script>
 
 <style scoped>
-/* Seu CSS não precisa de alterações */
 .container {
     margin-left: 250px;
     padding: 20px;
@@ -202,19 +328,25 @@ button {
     color: #fff;
     font-size: 0.85em;
     font-weight: bold;
+    text-transform: capitalize;
 }
 
 .status-badge.pendente {
     background-color: #ffc107;
+    color: #333;
 }
 
-.status-badge.em-andamento {
+.status-badge.empreparacao { /* Nome da classe vem do formatarStatusClass */
     background-color: #007bff;
 }
 
-.status-badge.concluido {
+.status-badge.entregue {
     background-color: #28a745;
 }
+.status-badge.cancelado {
+    background-color: #dc3545;
+}
+
 
 /* Botões de Ação na Tabela */
 .acoes {
@@ -227,14 +359,26 @@ button {
     margin: 0 4px;
     border-radius: 50%;
     font-size: 1rem;
+    /* Para os ícones caberem bem */
+    align-items: center;
+    width: 35px;
+    height: 35px;
+    line-height: 1.2;
+}
+
+.btn-detalhes {
+    background-color: #17a2b8;
+}
+.btn-detalhes:hover {
+    background-color: #117a8b;
 }
 
 .btn-editar {
-    background-color: #6c757d;
+    background-color: #117ed1;
 }
 
 .btn-editar:hover {
-    background-color: #5a6268;
+    background-color: #117ed1;
 }
 
 .btn-excluir {
@@ -243,5 +387,87 @@ button {
 
 .btn-excluir:hover {
     background-color: #c82333;
+}
+
+/* --- ESTILOS PARA O NOVO MODAL DE DETALHES --- */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.modal-container {
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 500px;
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.titulo {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.btn-fechar {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #888;
+}
+.btn-fechar:hover {
+    color: #333;
+}
+
+.detalhes-pedido p {
+  margin: 8px 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+.detalhes-pedido p strong {
+  color: #000;
+}
+.titulo-itens {
+  margin-top: 20px;
+  border-top: 1px solid #eee;
+  padding-top: 15px;
+}
+.lista-itens {
+  list-style: none;
+  padding: 0;
+  max-height: 150px;
+  overflow-y: auto;
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 4px;
+}
+.lista-itens li {
+  padding: 10px;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #eee;
+}
+.lista-itens li:last-child {
+  border-bottom: none;
+}
+.total-pedido strong {
+  font-size: 1.2rem;
+  color: #28a745;
 }
 </style>

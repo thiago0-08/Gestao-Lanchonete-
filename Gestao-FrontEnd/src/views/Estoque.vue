@@ -3,7 +3,12 @@
     <h1>Controle de Estoque</h1>
 
     <div class="box dashboard-card">
-    
+        <button
+            class="btn-novo-ingrediente"
+            @click="abrirModalCriarIngrediente"
+        >
+            + Novo Ingrediente
+        </button>
         <button
             class="btn-entrada"
             @click="showcriaNovaEntrada = true"
@@ -18,7 +23,6 @@
         </button>
     </div>
 
-    <!-- Modal de Registro de Entrada -->
     <div v-if="showcriaNovaEntrada">
         <CriaEntrada 
             @close="showcriaNovaEntrada = false" 
@@ -26,7 +30,6 @@
         />
     </div>
 
-    <!-- Modal de Registro de Saída -->
     <div v-if="showcriaNovaSaida">
         <CriaSaida 
             @close="showcriaNovaSaida = false" 
@@ -34,12 +37,19 @@
         />
     </div>
 
-    <!-- Tabela de Estoque -->
+    <div v-if="showCriaNovoIngrediente">
+        <CriaIngrediente 
+            @close="fecharModalIngrediente" 
+            @ingrediente-salvo="reloadIngredientes"
+            :ingredienteParaEditar="ingredienteParaEditar"
+        />
+    </div>
+
     <div class="box2 dashboard-card">
         <h2>Estoque de Ingredientes</h2>
 
         <p v-if="loading">Carregando dados de estoque...</p>
-        <p v-else-if="ingredienteStore.ingredientes.length === 0">Nenhum ingrediente cadastrado. Adicione um ingrediente!</p>
+        <p v-else-if="ingredientes.length === 0">Nenhum ingrediente cadastrado. Adicione um ingrediente!</p>
       
         <table v-else>
             <thead>
@@ -73,8 +83,12 @@
                         </span>
                     </td>
                     <td class="acoes">
-                        <button class="btn-editar"><i class="fas fa-pencil-alt"></i></button>
-                        <button class="btn-excluir"><i class="fas fa-trash-alt"></i></button>
+                        <button class="btn-editar" @click="abrirModalEditarIngrediente(item)">
+                            <font-awesome-icon icon="fa-solid fa-pencil-alt" />
+                        </button>
+                        <button class="btn-excluir" @click="handleExcluir(item.id)">
+                            <font-awesome-icon icon="fa-solid fa-trash-alt" />
+                        </button>
                     </td>
                 </tr>
             </tbody>
@@ -85,24 +99,30 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { storeToRefs } from 'pinia';
 import CriaSaida from '@/components/EstoqueComponents/CriaSaida.vue';
 import CriaEntrada from '@/components/EstoqueComponents/CriaEntrada.vue';
+import CriaIngrediente from '@/components/EstoqueComponents/CriaIngrediente.vue';
 import { useIngredientesStore } from '@/stores/ingredientes';
 
 const ingredienteStore = useIngredientesStore();
 
+// Usando storeToRefs para manter a reatividade da lista principal
+const { ingredientes } = storeToRefs(ingredienteStore);
+
 const loading = ref(true);
-const ingredientes = ref([]);
 const showcriaNovaSaida = ref(false);
 const showcriaNovaEntrada = ref(false);
+
+// Refs para o novo modal
+const showCriaNovoIngrediente = ref(false);
+const ingredienteParaEditar = ref(null);
 
 
 const reloadIngredientes = async () => {
     loading.value = true;
     try {
         await ingredienteStore.fetchIngredientes();
-       
-        ingredientes.value = ingredienteStore.ingredientes;
     } catch (e) {
         console.error("Falha ao recarregar ingredientes:", e);
     } finally {
@@ -120,6 +140,33 @@ const formatDate = (dateString) => {
 onMounted(async () => {
     await reloadIngredientes();
 });
+
+// ---  MODAL DE INGREDIENTE ---
+function abrirModalCriarIngrediente() {
+    ingredienteParaEditar.value = null;
+    showCriaNovoIngrediente.value = true;
+}
+
+function abrirModalEditarIngrediente(ingrediente) {
+    ingredienteParaEditar.value = ingrediente;
+    showCriaNovoIngrediente.value = true;
+}
+
+function fecharModalIngrediente() {
+    ingredienteParaEditar.value = null;
+    showCriaNovoIngrediente.value = false;
+}
+
+// --- FUNCAO DE EXCLUIR ---
+async function handleExcluir(id) {
+  if (window.confirm('Tem certeza que deseja excluir este ingrediente? Esta ação não pode ser desfeita.')) {
+    try {
+      await ingredienteStore.deleteIngrediente(id);
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+}
 </script>
 
 <style scoped>
@@ -134,7 +181,6 @@ h1 {
     margin-bottom: 20px;
 }
 
-/* Base para Cards */
 .dashboard-card {
     background: #ffffff;
     border: 1px solid #e0e0e0;
@@ -150,18 +196,15 @@ h1 {
     margin-bottom: 20px;
 }
 
-/* --- Tabela --- */
 .box2 {
     padding: 0;
+    overflow-x: auto;
 }
 
 table {
     width: 100%;
     border-collapse: collapse;
     margin-top: 15px;
-    /* Adiciona rolagem horizontal se a tabela for muito larga */
-    overflow-x: auto; 
-    display: block; 
     white-space: nowrap; 
 }
 
@@ -176,6 +219,8 @@ th {
     background-color: #f2f2f2;
     font-weight: bold;
     color: #555;
+    position: sticky; 
+    top: 0;
 }
 
 tbody tr:nth-child(even) {
@@ -197,10 +242,17 @@ button {
     font-weight: 500;
 }
 
+/* Botão novo ingrediente */
+.btn-novo-ingrediente {
+    background-color: #007bff;
+}
+.btn-novo-ingrediente:hover {
+    background-color: #0056b3;
+}
+
 .btn-entrada {
     background-color: #28a745;
 }
-
 .btn-entrada:hover {
     background-color: #218838;
 }
@@ -208,12 +260,11 @@ button {
 .btn-saida {
     background-color: #dc3545;
 }
-
 .btn-saida:hover {
     background-color: #c82333;
 }
 
-/* --- Botões de Ação na Tabela --- */
+/* --- Botões na Tabela --- */
 .acoes {
     text-align: center;
     white-space: nowrap;
@@ -224,12 +275,14 @@ button {
     margin: 0 4px;
     border-radius: 50%;
     font-size: 1rem;
+    width: 35px;
+    height: 35px;
+    line-height: 1.2;
 }
 
 .btn-editar {
     background-color: #6c757d;
 }
-
 .btn-editar:hover {
     background-color: #5a6268;
 }
@@ -237,7 +290,6 @@ button {
 .btn-excluir {
     background-color: #dc3545;
 }
-
 .btn-excluir:hover {
     background-color: #c82333;
 }

@@ -46,7 +46,6 @@ export const useProdutosStore = defineStore('produtos', () => {
     async function deleteProduto(id) {
         try {
             await axios.delete(`${API_URL}/${id}`);
-            // Remove o produto da lista local
             produtos.value = produtos.value.filter(p => p.id !== id);
         } catch (err) {
             console.error("Erro ao excluir produto:", err);
@@ -55,24 +54,17 @@ export const useProdutosStore = defineStore('produtos', () => {
     }
 
     // FUNÇÃO DE ATUALIZAR PRODUTO
-    async function updateProduto(id, produtoAtualizado) {
+   async function updateProduto(id, produtoAtualizado) {
         try {
-            // O DTO do backend espera 'idCategoria', não o objeto Categoria
-            const payload = {
-                ...produtoAtualizado,
-                idCategoria: produtoAtualizado.categoria.id 
-            };
-            const response = await axios.put(`${API_URL}/${id}`, payload);
-            
-            // Atualiza o produto na lista local
+            const response = await axios.put(`${API_URL}/${id}`, produtoAtualizado);
             const index = produtos.value.findIndex(p => p.id === id);
             if (index !== -1) {
                 produtos.value[index] = response.data;
             }
             return response.data;
         } catch (error) {
-            console.error("Erro ao atualizar produto:", error);
-            throw new Error('Não foi possível atualizar o produto.');
+            console.error("Erro ao atualizar produto:", error); 
+            throw new Error('Não foi possível atualizar o produto.'); 
         }
     }
 

@@ -212,6 +212,23 @@ namespace WebApplication1.Controllers
             return Ok(new { Mensagem = $"Pedido {id} marcado como 'Em Preparação'." });
         }
 
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeletarPedido(int id)
+        {
+            var pedido = await _context.Pedidos.FindAsync(id);
+
+            if (pedido == null)
+            {
+                return NotFound("Pedido não encontrado.");
+            }
+
+            _context.Pedidos.Remove(pedido);
+            await _context.SaveChangesAsync();
+            
+            return NoContent();
+        }
+
         [HttpPut("{id}/status")]
         public async Task<IActionResult> AtualizarStatus(int id, [FromBody] AtualizaStatusPedidoDTO dto)
         {
