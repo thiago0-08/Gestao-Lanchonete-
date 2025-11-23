@@ -42,7 +42,6 @@ export const useProdutosStore = defineStore('produtos', () => {
         }
     }
 
-    //  FUNÇÃO DE EXCLUIR PRODUTO
     async function deleteProduto(id) {
         try {
             await axios.delete(`${API_URL}/${id}`);
@@ -53,7 +52,6 @@ export const useProdutosStore = defineStore('produtos', () => {
         }
     }
 
-    // FUNÇÃO DE ATUALIZAR PRODUTO
    async function updateProduto(id, produtoAtualizado) {
         try {
             const response = await axios.put(`${API_URL}/${id}`, produtoAtualizado);

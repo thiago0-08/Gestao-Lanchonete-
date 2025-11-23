@@ -19,7 +19,7 @@ export const useReceitasStore = defineStore('receitas', () => {
         } catch (err) {
             error.value = 'Erro ao buscar as receitas.';
             console.error(err);
-            receitas.value = []; // Garante que é um array mesmo em caso de erro
+            receitas.value = []; 
         } finally {
             loading.value = false;
         }
@@ -40,7 +40,6 @@ export const useReceitasStore = defineStore('receitas', () => {
     async function updateReceita(id, receitaAtualizada) {
         try {
             const response = await axios.put(`${API_URL}/${id}`, receitaAtualizada);
-            // Atualiza a receita na lista local
             const index = receitas.value.findIndex(r => r.id === id);
             if (index !== -1) {
                 receitas.value[index] = response.data;

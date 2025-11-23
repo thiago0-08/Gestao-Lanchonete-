@@ -6,11 +6,10 @@ const RELATORIO_API_URL = 'http://localhost:5138/api/Relatorio';
 const VENDAS_API_URL = 'http://localhost:5138/api/Vendas';
 
 export const useRelatorioStore = defineStore('relatorio', () => {
-    // --- STATE ---
     const itensEmFalta = ref([]);
     const produtosMaisVendidos = ref([]);
     
-    // Dados do Dashboard (Faturamento, Pedidos, Ticket Médio)
+    // dados do Dashboard
     const resumoDia = ref({
         faturamento: 0,
         totalPedidos: 0,
@@ -19,14 +18,13 @@ export const useRelatorioStore = defineStore('relatorio', () => {
 
     // Dados dos Gráficos
     const faturamentoMensal = ref([]);
-    const faturamento7dias = ref([]);
-    
+   
     const loading = ref(false);
     const error = ref(null);
 
-    // --- ACTIONS ---
+   
 
-    // 1. Busca o Resumo do Dia (3 chamadas em paralelo)
+   
     async function fetchResumoDoDia() {
         const hoje = new Date().toISOString().split('T')[0]; // Data YYYY-MM-DD
         try {
@@ -66,15 +64,7 @@ export const useRelatorioStore = defineStore('relatorio', () => {
         }
     }
 
-    async function fetchVendasUltimos7Dias() {
-        try {
-            const response = await axios.get(`${VENDAS_API_URL}/vendas-ultimos-7-dias`);
-            faturamento7dias.value = response.data;
-        } catch (err) {
-            console.error("Erro ao buscar vendas 7 dias:", err);
-            faturamento7dias.value = [];
-        }
-    }
+    
 
     async function fetchFaturamentoMensal(ano) {
         try {
@@ -86,7 +76,7 @@ export const useRelatorioStore = defineStore('relatorio', () => {
         }
     }
 
-    // Função Mestra: Carrega TUDO que o Dashboard precisa
+   
     async function fetchDadosDashboard() {
         loading.value = true;
         error.value = null;
@@ -112,7 +102,6 @@ export const useRelatorioStore = defineStore('relatorio', () => {
         itensEmFalta,
         produtosMaisVendidos,
         faturamentoMensal,
-        faturamento7dias,
         loading,
         error,
         fetchDadosDashboard

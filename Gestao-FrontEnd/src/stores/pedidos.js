@@ -47,7 +47,7 @@ export const usePedidosStore = defineStore('pedidos', () => {
         }
     }
 
-    //  atualizar um pedido
+    //  atualiza um pedido
     async function updatePedido(id, pedidoAtualizado) {
         try {
             await axios.put(`http://localhost:5138/api/Pedidos/${id}`, pedidoAtualizado);
