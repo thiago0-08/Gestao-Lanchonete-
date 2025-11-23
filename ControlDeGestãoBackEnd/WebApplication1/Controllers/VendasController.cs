@@ -30,5 +30,19 @@ namespace WebApplication1.Controllers
             var produtos = await _vendasService.GetProdutosMaisVendidos(topN);
             return Ok(produtos);
         }
+
+        [HttpGet("vendas-ultimos-7-dias")]
+        public async Task<IActionResult> GetVendasUltimos7Dias()
+        {
+            var vendas = await _vendasService.GetVendasUltimos7DiasAsync();
+            return Ok(vendas);
+        }
+
+        [HttpGet("faturamento-mensal/{ano}")]
+        public async Task<IActionResult> GetFaturamentoMensal(int ano)
+        {
+            var faturamento = await _vendasService.GetFaturamentoMensalAsync(ano);
+            return Ok(faturamento);
+        }
     }
 }

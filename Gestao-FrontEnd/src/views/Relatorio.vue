@@ -3,116 +3,95 @@
         <h1>Relatórios</h1>
         <p class="subtitle">Análises e relatórios do seu negócio</p>
 
-        <!-- Seção de Filtros e Geração de Relatório -->
         <div class="filter-card dashboard-card">
-            <div class="filter-group">
-                <label for="periodo">Período</label>
-                <select id="periodo">
-                    <option value="este-mes">Este Mês</option>
-                    <option value="mes-anterior">Mês Anterior</option>
-                    <option value="ultimos-30-dias">Últimos 30 Dias</option>
-                    <option value="personalizado">Personalizado</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label for="data-inicial">Data Inicial</label>
-                <input type="date" id="data-inicial" value="2024-01-01">
-            </div>
-            <div class="filter-group">
-                <label for="data-final">Data Final</label>
-                <input type="date" id="data-final" value="2024-01-31">
-            </div>
-            <button class="btn-primary">Gerar Relatório</button>
         </div>
 
-        <!-- Seção de Resumo de Vendas -->
         <div class="summary-cards-grid">
             <div class="summary-card">
-                <p class="summary-label">Faturamento Total</p>
-                <p class="summary-value green">R$ 38.750,00</p>
+                <p class="summary-label">Faturamento Hoje</p>
+                <p class="summary-value green">R$ {{ faturamentoDiario.toFixed(2) }}</p>
             </div>
             <div class="summary-card">
-                <p class="summary-label">Total de Pedidos</p>
-                <p class="summary-value blue">1.456</p>
-            </div>
-            <div class="summary-card">
-                <p class="summary-label">Ticket Médio</p>
-                <p class="summary-value orange">R$ 26,61</p>
-            </div>
-            <div class="summary-card">
-                <p class="summary-label">Pedidos/Dia</p>
-                <p class="summary-value purple">47</p>
+                <p class="summary-label">Itens em Alerta</p>
+                <p class="summary-value purple">{{ itensEmFalta.length }}</p>
             </div>
         </div>
 
-        <!-- Seção de Gráficos e Tabelas -->
         <div class="dashboard-grid">
             <div class="dashboard-card chart-container">
                 <h3>Faturamento Mensal</h3>
-                <FaturamentoMensal />
-
+                <FaturamentoMensal :chartData="dadosGraficoMensal" />
             </div>
 
             <div class="dashboard-card chart-container">
                 <h3>Produtos Mais Vendidos</h3>
-                <ProdutoMaisVendidos />
-
+                <ProdutoMaisVendidos :chartData="dadosGraficoMaisVendidos" />
             </div>
         </div>
 
         <div class="dashboard-grid">
             <div class="dashboard-card table-container">
                 <h3>Itens em Falta</h3>
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Produto</th>
-                            <th>Estoque Atual</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Pão de Hambúrguer</td>
-                            <td>12 unidades</td>
-                            <td><span class="status-badge critico">Crítico</span></td>
-                        </tr>
-                        <tr>
-                            <td>Tomate</td>
-                            <td>5 kg</td>
-                            <td><span class="status-badge atencao">Atenção</span></td>
-                        </tr>
-                        <tr>
-                            <td>Bacon</td>
-                            <td>2 kg</td>
-                            <td><span class="status-badge critico">Crítico</span></td>
-                        </tr>
-                    </tbody>
+                <div v-if="loading" class="loading-message">Carregando itens...</div>
+                <div v-else-if="itensEmFalta.length === 0">Nenhum item em falta.</div>
+                <table v-else class="data-table">
                 </table>
             </div>
 
-            <div class="dashboard-card table-container">
-                <h3>vendas Ultimos 7 dias</h3>
-                <Ultimos7dias />
-
+            <div class="dashboard-card table-container chart-container">
+                <h3>Vendas Últimos 7 dias</h3>
+                <Ultimos7dias :chartData="dadosGrafico7Dias" />
             </div>
         </div>
     </div>
 </template>
 
-<script>
+<script setup>
+import { ref, onMounted, computed } from 'vue';
+import { storeToRefs } from 'pinia';
 import FaturamentoMensal from '@/components/graficos/FaturamentoMensal.vue';
 import ProdutoMaisVendidos from '@/components/graficos/ProdutoMaisVendidos.vue';
 import Ultimos7dias from '@/components/graficos/Ultimos7dias.vue';
+import { useRelatorioStore } from '@/stores/relatorio';
 
-export default {
-    components: {
-        Ultimos7dias,
-        ProdutoMaisVendidos,
-        FaturamentoMensal,
-    }
-}
+const relatorioStore = useRelatorioStore();
+
+// Pega todos os states reativos da store
+const {
+    itensEmFalta,
+    produtosMaisVendidos,
+    faturamentoDiario,
+    faturamentoMensal,
+    faturamento7dias,
+    loading,
+    error
+} = storeToRefs(relatorioStore);
+
+onMounted(() => {
+    relatorioStore.fetchRelatorioCompleto();
+});
+
+// --- COMPUTED PROPERTIES PARA OS GRÁFICOS ---
+
+// Formata dados para o gráfico de Produtos Mais Vendidos
+const dadosGraficoMaisVendidos = computed(() => ({
+    labels: produtosMaisVendidos.value.map(p => p.nomeProduto),
+    data: produtosMaisVendidos.value.map(p => p.quantidadeVendida)
+}));
+
+// 👇 NOVO: Formata dados para o gráfico Faturamento Mensal 👇
+const dadosGraficoMensal = computed(() => ({
+    labels: faturamentoMensal.value.map(m => m.label),
+    data: faturamentoMensal.value.map(m => m.valor)
+}));
+
+// 👇 NOVO: Formata dados para o gráfico Últimos 7 Dias 👇
+const dadosGrafico7Dias = computed(() => ({
+    labels: faturamento7dias.value.map(d => d.label),
+    data: faturamento7dias.value.map(d => d.valor)
+}));
 </script>
+
 
 <style scoped>
 .container {
@@ -232,12 +211,26 @@ h1 {
 /* Gráficos e Tabelas */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    /* Ajustado para centralizar os cards de 400px */
+    grid-template-columns: repeat(auto-fit, 400px);
     gap: 20px;
     margin-top: 20px;
+    justify-content: center;
+    /* Centraliza os cards se não preencherem a linha */
 }
 
-.chart-container,
+/* --- ESTA É A CORREÇÃO --- */
+.chart-container {
+    display: flex;
+    flex-direction: column;
+    width: 400px;
+    /* Largura fixa */
+    height: 250px;
+    /* Altura fixa */
+}
+
+/* ------------------------- */
+
 .table-container {
     display: flex;
     flex-direction: column;
