@@ -22,8 +22,7 @@
         </div>
         <div class="info-content">
           <h3>Pedidos de Hoje</h3>
-          <table><p>{{ resumoDia.totalPedidos }}</p></table>
-          
+          <p>{{ resumoDia.totalPedidos }}</p>
         </div>
       </div>
       <div class="info-box">
@@ -103,7 +102,7 @@
             </tr>
             <tr v-if="itensEmFalta.length === 0">
               <td colspan="4" style="text-align: center; color: green;">
-                Nenhum alerta de estoque! Tudo ok.
+                Nenhum alerta de estoque! Tudo em ordem.
               </td>
             </tr>
           </tbody>
@@ -117,9 +116,7 @@
 <script setup>
 import { onMounted, computed } from 'vue';
 import { storeToRefs } from 'pinia';
-import Ultimos7dias from '@/components/graficos/Ultimos7dias.vue';
 import FaturamentoMensal from '@/components/graficos/FaturamentoMensal.vue';
-// Usamos a store unificada de relatórios agora
 import { useRelatorioStore } from '../stores/relatorio';
 
 const relatorioStore = useRelatorioStore();
@@ -148,6 +145,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* MANTENHA O SEU CSS ATUAL AQUI */
+/* ... */
 .container {
     margin-left: 250px;
     padding: 20px;

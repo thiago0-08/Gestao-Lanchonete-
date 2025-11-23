@@ -55,41 +55,40 @@
             </div>
         </div>
 
-        <div class="dashboard-grid">
-            <div class="dashboard-card table-container">
-                <h3>Itens em Falta</h3>
-                <div v-if="loading" class="loading-message">Carregando itens...</div>
-                <div v-else-if="itensEmFalta.length === 0">Nenhum item em falta.</div>
-                <table v-else class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Tipo</th>
-                            <th>Estoque Atual</th>
-                            <th>Estoque Mínimo</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr v-for="item in itensEmFalta" :key="item.nome">
-                            <td>{{ item.nome }}</td>
-                            <td>{{ item.tipo }}</td>
-                            <td>{{ item.estoqueAtual }}</td>
-                            <td>{{ item.estoqueMinimo }}</td>
-                            <td>
-                                <span class="status-badge" 
-                                      :class="item.estoqueAtual === 0 ? 'critico' : 'atencao'">
-                                    {{ item.estoqueAtual === 0 ? 'Crítico' : 'Atenção' }}
-                                </span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
 
-            
+        <div class="dashboard-itens-faltante">
+            <h3> Itens em Falta</h3>
+            <div v-if="loading" class="loading-message">Carregando itens...</div>
+            <div v-else-if="itensEmFalta.length === 0">Nenhum item em falta.</div>
+            <table v-else class="data-table">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Tipo</th>
+                        <th>Estoque Atual</th>
+                        <th>Estoque Mínimo</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr v-for="item in itensEmFalta" :key="item.nome">
+                        <td>{{ item.nome }}</td>
+                        <td>{{ item.tipo }}</td>
+                        <td>{{ item.estoqueAtual }}</td>
+                        <td>{{ item.estoqueMinimo }}</td>
+                        <td>
+                            <span class="status-badge" :class="item.estoqueAtual === 0 ? 'critico' : 'atencao'">
+                                {{ item.estoqueAtual === 0 ? 'Crítico' : 'Atenção' }}
+                            </span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
+
+
     </div>
+
 </template>
 
 <script setup>
@@ -97,20 +96,17 @@ import { onMounted, computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import FaturamentoMensal from '@/components/graficos/FaturamentoMensal.vue';
 import ProdutoMaisVendidos from '@/components/graficos/ProdutoMaisVendidos.vue';
-
 import { useRelatorioStore } from '@/stores/relatorio';
 
 const relatorioStore = useRelatorioStore();
 
-const { 
-    itensEmFalta, 
-    produtosMaisVendidos, 
-    // CORREÇÃO: Trazendo 'resumoDia' em vez de 'faturamentoDiario'
-    resumoDia, 
-    faturamentoMensal, 
-    faturamento7dias, 
-    loading, 
-    error 
+const {
+    itensEmFalta,
+    produtosMaisVendidos,
+    resumoDia,
+    faturamentoMensal,
+    loading,
+    error
 } = storeToRefs(relatorioStore);
 
 onMounted(() => {
@@ -161,6 +157,13 @@ h1 {
     border-radius: 8px;
     padding: 20px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-itens-faltante {
+    background: #ffffff;
+    border: 1px solid #000000;
+    border-radius: 8px;
+    margin-top: 55px;
 }
 
 /* Filtros */
@@ -254,7 +257,7 @@ h1 {
 /* Gráficos e Tabelas */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, 400px); 
+    grid-template-columns: repeat(auto-fit, 400px);
     gap: 20px;
     margin-top: 20px;
     justify-content: center;
@@ -267,10 +270,7 @@ h1 {
     height: 250px;
 }
 
-.table-container {
-    display: flex;
-    flex-direction: column;
-}
+
 
 .data-table {
     width: 100%;

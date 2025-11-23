@@ -10,7 +10,7 @@ export const useRelatorioStore = defineStore('relatorio', () => {
     const itensEmFalta = ref([]);
     const produtosMaisVendidos = ref([]);
     
-    // Dados do Dashboard
+    // Dados do Dashboard (Faturamento, Pedidos, Ticket Médio)
     const resumoDia = ref({
         faturamento: 0,
         totalPedidos: 0,
@@ -26,9 +26,9 @@ export const useRelatorioStore = defineStore('relatorio', () => {
 
     // --- ACTIONS ---
 
-    // 1. Busca Faturamento, Total de Pedidos e Ticket Médio do dia
+    // 1. Busca o Resumo do Dia (3 chamadas em paralelo)
     async function fetchResumoDoDia() {
-        const hoje = new Date().toISOString().split('T')[0];
+        const hoje = new Date().toISOString().split('T')[0]; // Data YYYY-MM-DD
         try {
             const [fatRes, pedRes, ticketRes] = await Promise.all([
                 axios.get(`${VENDAS_API_URL}/faturamento-diario/${hoje}`),
@@ -37,9 +37,9 @@ export const useRelatorioStore = defineStore('relatorio', () => {
             ]);
 
             resumoDia.value = {
-                faturamento: fatRes.data.faturamento,
-                totalPedidos: pedRes.data.totalPedidos,
-                ticketMedio: ticketRes.data.ticketMedio
+                faturamento: fatRes.data.faturamento || 0,
+                totalPedidos: pedRes.data.totalPedidos || 0,
+                ticketMedio: ticketRes.data.ticketMedio || 0
             };
         } catch (err) {
             console.error("Erro ao buscar resumo do dia:", err);
