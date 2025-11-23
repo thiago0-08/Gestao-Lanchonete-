@@ -44,5 +44,19 @@ namespace WebApplication1.Controllers
             var faturamento = await _vendasService.GetFaturamentoMensalAsync(ano);
             return Ok(faturamento);
         }
+
+        [HttpGet("total-pedidos/{data}")]
+        public async Task<IActionResult> GetTotalPedidosDiario(DateTime data)
+        {
+            var total = await _vendasService.GetTotalPedidosDiarioAsync(data);
+            return Ok(new { data = data.Date, totalPedidos = total });
+        }
+
+        [HttpGet("ticket-medio/{data}")]
+        public async Task<IActionResult> GetTicketMedioDiario(DateTime data)
+        {
+            var ticket = await _vendasService.GetTicketMedioDiarioAsync(data);
+            return Ok(new { data = data.Date, ticketMedio = ticket });
+        }
     }
 }

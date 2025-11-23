@@ -11,6 +11,9 @@ using WebApplication1.Services;
 using System.Text.Json.Serialization;
 
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Adiciona serviços ao contêiner.

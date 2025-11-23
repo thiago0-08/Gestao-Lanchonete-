@@ -29,7 +29,7 @@ const renderChart = () => {
   }
 
   chartInstance.value = new Chart(ctx, {
-    type: 'pie', // Gráfico de linha
+    type: 'line', // Gráfico de linha
     data: {
       labels: props.chartData.labels, // Labels dinâmicos (Janeiro, Fevereiro...)
       datasets: [{

@@ -4,12 +4,38 @@
         <p class="subtitle">Análises e relatórios do seu negócio</p>
 
         <div class="filter-card dashboard-card">
+            <div class="filter-group">
+                <label for="periodo">Período</label>
+                <select id="periodo">
+                    <option value="este-mes">Este Mês</option>
+                    <option value="mes-anterior">Mês Anterior</option>
+                    <option value="ultimos-30-dias">Últimos 30 Dias</option>
+                    <option value="personalizado">Personalizado</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="data-inicial">Data Inicial</label>
+                <input type="date" id="data-inicial">
+            </div>
+            <div class="filter-group">
+                <label for="data-final">Data Final</label>
+                <input type="date" id="data-final">
+            </div>
+            <button class="btn-primary">Gerar Relatório</button>
         </div>
 
         <div class="summary-cards-grid">
             <div class="summary-card">
                 <p class="summary-label">Faturamento Hoje</p>
-                <p class="summary-value green">R$ {{ faturamentoDiario.toFixed(2) }}</p>
+                <p class="summary-value green">R$ {{ resumoDia.faturamento.toFixed(2) }}</p>
+            </div>
+            <div class="summary-card">
+                <p class="summary-label">Total de Pedidos</p>
+                <p class="summary-value blue">{{ resumoDia.totalPedidos }}</p>
+            </div>
+            <div class="summary-card">
+                <p class="summary-label">Ticket Médio</p>
+                <p class="summary-value orange">R$ {{ resumoDia.ticketMedio.toFixed(2) }}</p>
             </div>
             <div class="summary-card">
                 <p class="summary-label">Itens em Alerta</p>
@@ -35,65 +61,82 @@
                 <div v-if="loading" class="loading-message">Carregando itens...</div>
                 <div v-else-if="itensEmFalta.length === 0">Nenhum item em falta.</div>
                 <table v-else class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Tipo</th>
+                            <th>Estoque Atual</th>
+                            <th>Estoque Mínimo</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="item in itensEmFalta" :key="item.nome">
+                            <td>{{ item.nome }}</td>
+                            <td>{{ item.tipo }}</td>
+                            <td>{{ item.estoqueAtual }}</td>
+                            <td>{{ item.estoqueMinimo }}</td>
+                            <td>
+                                <span class="status-badge" 
+                                      :class="item.estoqueAtual === 0 ? 'critico' : 'atencao'">
+                                    {{ item.estoqueAtual === 0 ? 'Crítico' : 'Atenção' }}
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
                 </table>
             </div>
 
-            <div class="dashboard-card table-container chart-container">
-                <h3>Vendas Últimos 7 dias</h3>
-                <Ultimos7dias :chartData="dadosGrafico7Dias" />
-            </div>
+            
         </div>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { onMounted, computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import FaturamentoMensal from '@/components/graficos/FaturamentoMensal.vue';
 import ProdutoMaisVendidos from '@/components/graficos/ProdutoMaisVendidos.vue';
-import Ultimos7dias from '@/components/graficos/Ultimos7dias.vue';
+
 import { useRelatorioStore } from '@/stores/relatorio';
 
 const relatorioStore = useRelatorioStore();
 
-// Pega todos os states reativos da store
-const {
-    itensEmFalta,
-    produtosMaisVendidos,
-    faturamentoDiario,
-    faturamentoMensal,
-    faturamento7dias,
-    loading,
-    error
+const { 
+    itensEmFalta, 
+    produtosMaisVendidos, 
+    // CORREÇÃO: Trazendo 'resumoDia' em vez de 'faturamentoDiario'
+    resumoDia, 
+    faturamentoMensal, 
+    faturamento7dias, 
+    loading, 
+    error 
 } = storeToRefs(relatorioStore);
 
 onMounted(() => {
-    relatorioStore.fetchRelatorioCompleto();
+    // Agora usamos a função unificada que carrega tudo
+    relatorioStore.fetchDadosDashboard();
 });
 
-// --- COMPUTED PROPERTIES PARA OS GRÁFICOS ---
-
-// Formata dados para o gráfico de Produtos Mais Vendidos
+// Computed Properties para os gráficos
 const dadosGraficoMaisVendidos = computed(() => ({
-    labels: produtosMaisVendidos.value.map(p => p.nomeProduto),
-    data: produtosMaisVendidos.value.map(p => p.quantidadeVendida)
+    labels: produtosMaisVendidos.value.map(p => p.nomeProduto || p.NomeProduto || 'Desconhecido'),
+    data: produtosMaisVendidos.value.map(p => p.quantidadeVendida || p.QuantidadeVendida || 0)
 }));
 
-// 👇 NOVO: Formata dados para o gráfico Faturamento Mensal 👇
 const dadosGraficoMensal = computed(() => ({
-    labels: faturamentoMensal.value.map(m => m.label),
-    data: faturamentoMensal.value.map(m => m.valor)
+    labels: faturamentoMensal.value.map(m => m.label || m.Label || ''),
+    data: faturamentoMensal.value.map(m => m.valor || m.Valor || 0)
 }));
 
-// 👇 NOVO: Formata dados para o gráfico Últimos 7 Dias 👇
 const dadosGrafico7Dias = computed(() => ({
-    labels: faturamento7dias.value.map(d => d.label),
-    data: faturamento7dias.value.map(d => d.valor)
+    labels: faturamento7dias.value.map(d => d.label || d.Label || ''),
+    data: faturamento7dias.value.map(d => d.valor || d.Valor || 0)
 }));
 </script>
 
-
 <style scoped>
+/* (Seus estilos CSS permanecem os mesmos) */
 .container {
     margin-left: 250px;
     padding: 20px;
@@ -211,25 +254,18 @@ h1 {
 /* Gráficos e Tabelas */
 .dashboard-grid {
     display: grid;
-    /* Ajustado para centralizar os cards de 400px */
-    grid-template-columns: repeat(auto-fit, 400px);
+    grid-template-columns: repeat(auto-fit, 400px); 
     gap: 20px;
     margin-top: 20px;
     justify-content: center;
-    /* Centraliza os cards se não preencherem a linha */
 }
 
-/* --- ESTA É A CORREÇÃO --- */
 .chart-container {
     display: flex;
     flex-direction: column;
     width: 400px;
-    /* Largura fixa */
     height: 250px;
-    /* Altura fixa */
 }
-
-/* ------------------------- */
 
 .table-container {
     display: flex;

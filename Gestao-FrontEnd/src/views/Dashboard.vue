@@ -4,14 +4,16 @@
     <h2>Bem-vindo ao Dashboard</h2>
     <p>Aqui você pode ver uma visão geral do sistema de gestão da lanchonete.</p>
 
-    <div class="infos">
+    <div v-if="loading" class="loading-state">Carregando dados...</div>
+
+    <div v-else class="infos">
       <div class="info-box">
         <div class="icone green">
           <i class="fa-solid fa-dollar-sign"></i>
         </div>
         <div class="info-content">
           <h3>Faturamento Hoje</h3>
-          <p>R$ 123</p>
+          <p>R$ {{ resumoDia.faturamento.toFixed(2) }}</p>
         </div>
       </div>
       <div class="info-box">
@@ -20,7 +22,8 @@
         </div>
         <div class="info-content">
           <h3>Pedidos de Hoje</h3>
-          <p>20</p>
+          <table><p>{{ resumoDia.totalPedidos }}</p></table>
+          
         </div>
       </div>
       <div class="info-box">
@@ -28,8 +31,8 @@
           <i class="fa-solid fa-ticket"></i>
         </div>
         <div class="info-content">
-          <h3>Preço Médio</h3>
-          <p>12</p>
+          <h3>Ticket Médio</h3>
+          <p>R$ {{ resumoDia.ticketMedio.toFixed(2) }}</p>
         </div>
       </div>
       <div class="info-box">
@@ -37,99 +40,111 @@
           <i class="fa-solid fa-triangle-exclamation"></i>
         </div>
         <div class="info-content">
-          <h3>Alerta Estoque</h3>
-          <div class="tooltip-wrapper" @mouseenter="showTooltip" @mouseleave="hideTooltip">
-            <p>{{ store.quantidade }}</p>
-            <div v-if="isTooltipVisible" class="tooltip-message">
-              <p>{{ store.mensagem }}</p>
-            </div>
+          <h3>Itens em Alerta</h3>
+          <div class="tooltip-wrapper">
+            <p>{{ itensEmFalta.length }}</p>
+            <span class="tooltip-text" v-if="itensEmFalta.length > 0">
+              {{ itensEmFalta.length }} itens precisam de reposição!
+            </span>
           </div>
         </div>
       </div>
     </div>
-    <div class="info-vendas">
+
+    <div class="info-vendas" v-if="!loading">
+      
       <div class="dashboard-card chart-card">
-        <h3>Vendas Mensais</h3>
-        <Ultimos7dias />
+        <h3>Faturamento Mensal</h3>
+        <FaturamentoMensal :chartData="dadosGraficoMensal" />
       </div>
 
       <div class="dashboard-card table-card">
         <h3>Produtos Mais Vendidos</h3>
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>Qtd. Vendida</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="produto in produtosMaisVendidos" :key="produto.produtoId">
+                <td>{{ produto.nomeProduto || produto.NomeProduto }}</td>
+                <td>{{ produto.quantidadeVendida || produto.QuantidadeVendida }}</td>
+              </tr>
+              <tr v-if="produtosMaisVendidos.length === 0">
+                <td colspan="2" style="text-align: center;">Sem vendas registradas.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-card alert-table" v-if="!loading">
+      <h3>Alerta de Estoque ({{ itensEmFalta.length }})</h3>
+      <div class="table-responsive">
         <table>
           <thead>
             <tr>
-              <th>Produto</th>
-              <th>Quantidade Vendida</th>
+              <th>Nome</th>
+              <th>Tipo</th>
+              <th>Estoque Atual</th>
+              <th>Mínimo</th>
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td>Hambúrguer</td>
-              <td>150</td>
+            <tr v-for="item in itensEmFalta" :key="item.nome">
+              <td>{{ item.nome }}</td>
+              <td>{{ item.tipo }}</td>
+              <td>{{ item.estoqueAtual }}</td>
+              <td>{{ item.estoqueMinimo }}</td>
             </tr>
-            <tr>
-              <td>Pizza</td>
-              <td>120</td>
-            </tr>
-            <tr>
-              <td>Refrigerante</td>
-              <td>200</td>
+            <tr v-if="itensEmFalta.length === 0">
+              <td colspan="4" style="text-align: center; color: green;">
+                Nenhum alerta de estoque! Tudo ok.
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
     </div>
-    <div class="dashboard-card alert-table">
-      <h3>Alerta de Estoque</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Produto</th>
-            <th>Quantidade em Estoque</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in ingredientes" :key="item.id">
-            <td>{{ item.nome }}</td>
-            <td>{{ item.quantidadeEstoque }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+
   </div>
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue';
+import { onMounted, computed } from 'vue';
+import { storeToRefs } from 'pinia';
 import Ultimos7dias from '@/components/graficos/Ultimos7dias.vue';
-import { useAlertaEstoqueStore } from '../stores/alertaEstoque';
-import { useIngredientesStore } from '@/stores/ingredientes';
+import FaturamentoMensal from '@/components/graficos/FaturamentoMensal.vue';
+// Usamos a store unificada de relatórios agora
+import { useRelatorioStore } from '../stores/relatorio';
 
-const store = useAlertaEstoqueStore();
-const ingredienteStore = useIngredientesStore();
-const ingredientes = ref([]);
+const relatorioStore = useRelatorioStore();
 
-const isTooltipVisible = ref(false);
+// Extraímos os dados reativos da store
+const { 
+  resumoDia, 
+  itensEmFalta, 
+  produtosMaisVendidos, 
+  faturamentoMensal, 
+  loading 
+} = storeToRefs(relatorioStore);
 
-// Função para mostrar o tooltip
-const showTooltip = () => {
-  isTooltipVisible.value = true;
-};
-
-const hideTooltip = () => {
-  isTooltipVisible.value = false;
-};
-
-
-onMounted(async () => {
-  //  API   alerta de estoque
-  await store.fetchAlertaEstoque();
-  
-  //  API  ingredientes
-  await ingredienteStore.fetchIngredientes();
-  ingredientes.value = ingredienteStore.ingredientes;
+// Computada para formatar os dados para o gráfico de Faturamento Mensal
+const dadosGraficoMensal = computed(() => {
+  return {
+    labels: faturamentoMensal.value.map(m => m.label || m.Label),
+    data: faturamentoMensal.value.map(m => m.valor || m.Valor)
+  };
 });
 
+onMounted(() => {
+  // Carrega TODOS os dados necessários para o dashboard de uma vez
+  relatorioStore.fetchDadosDashboard();
+});
 </script>
 
 <style scoped>
@@ -144,11 +159,19 @@ h2 {
     margin-bottom: 20px;
 }
 
+.loading-state {
+    text-align: center;
+    font-size: 1.2rem;
+    color: #666;
+    margin-top: 50px;
+}
+
+/* --- CARDS INFORMATIVOS --- */
 .infos {
-    margin-top: 60px;
-    display: flex;
+    margin-top: 30px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     gap: 20px;
-    flex-wrap: wrap;
 }
 
 .info-box {
@@ -156,11 +179,14 @@ h2 {
     border: 1px solid #e0e0e0;
     border-radius: 8px;
     padding: 20px;
-    flex: 1 1 calc(25% - 20px);
-    box-sizing: border-box;
     display: flex;
     align-items: center;
-    box-shadow: 0 4px 6px rgb(0, 0, 0);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    transition: transform 0.2s;
+}
+
+.info-box:hover {
+    transform: translateY(-2px);
 }
 
 .icone {
@@ -173,123 +199,133 @@ h2 {
     margin-right: 15px;
     font-size: 20px;
     color: #fff;
+    flex-shrink: 0;
 }
 
-.icone.green {
-    background-color: #28a745;
-}
-
-.icone.blue {
-    background-color: #007bff;
-}
-
-.icone.orange {
-    background-color: #ffc107;
-}
-
-.icone.red {
-    background-color: #dc3545;
-}
-
+.icone.green { background-color: #28a745; }
+.icone.blue { background-color: #007bff; }
+.icone.orange { background-color: #ffc107; }
+.icone.red { background-color: #dc3545; }
 
 .info-content {
     display: flex;
     flex-direction: column;
-    text-align: left;
 }
 
 .info-box h3 {
-    margin-bottom: 5px;
-    color: #555;
-    font-weight: normal;
-    font-size: 1rem;
+    margin: 0 0 5px 0;
+    color: #6c757d;
+    font-size: 0.9rem;
+    font-weight: 600;
 }
 
 .info-box p {
-    font-size: 24px;
+    font-size: 1.5rem;
     font-weight: bold;
-    color: #000;
+    color: #333;
+    margin: 0;
 }
 
+/* --- ÁREA PRINCIPAL (GRÁFICO E TABELA) --- */
 .info-vendas {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
     gap: 20px;
-    margin-top: 40px;
+    margin-top: 30px;
 }
 
-/* Base para Cards */
 .dashboard-card {
     background: #ffffff;
     border: 1px solid #e0e0e0;
     border-radius: 8px;
     padding: 20px;
-    box-shadow: 0 4px 6px rgb(0, 0, 0);
-    margin-top: 40px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
 }
 
 .chart-card {
-    height: 350px;
-    width: 650px;
+    height: 350px; /* Altura fixa para o gráfico */
+    min-width: 300px;
 }
 
 .table-card {
     height: 350px;
-    width: 650px;
+    overflow: hidden; /* Esconde barra de rolagem externa */
 }
 
-/* Tabelas */
+.table-responsive {
+    overflow-y: auto;
+    height: 100%;
+}
+
+/* --- TABELAS --- */
 table {
     width: 100%;
     border-collapse: collapse;
-    margin-top: 15px;
+    margin-top: 10px;
 }
 
-th,
-td {
-    border: 1px solid #e0e0e0;
+th, td {
+    border-bottom: 1px solid #eee;
     padding: 10px;
     text-align: left;
+    font-size: 0.95rem;
 }
 
 th {
-    background-color: #f2f2f2;
-    font-weight: bold;
+    background-color: #f8f9fa;
+    font-weight: 600;
     color: #555;
+    position: sticky;
+    top: 0;
 }
 
-tbody tr:nth-child(even) {
-    background-color: #f9f9f9;
+tbody tr:hover {
+    background-color: #f1f1f1;
 }
 
-.alert-table th,
-.alert-table td {
-    border: 1px solid #050505;
+/* Alert Table específica */
+.alert-table {
+    margin-top: 30px;
 }
 
-
-
-
-
+/* Tooltip simples */
 .tooltip-wrapper {
-    position: relative; 
-    display: inline-block; 
-    cursor: pointer;
+    position: relative;
+}
+.tooltip-text {
+    visibility: hidden;
+    width: 180px;
+    background-color: #555;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 5px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%;
+    left: 50%;
+    margin-left: -90px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.8rem;
+}
+.info-box:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
 }
 
-.tooltip-message {
-    position: absolute;
-    bottom: calc(100% + 5px); 
-    left: 50%; 
-    transform: translateX(-50%); 
-    background-color: #ff0000;
-    color: #fff;
-    padding: 8px 12px;
-    border-radius: 4px;
-    width: 200px; 
-    max-width: 250px; 
-    text-align: center; 
-    z-index: 10;
-    font-family: sans-serif;
-    font-size: 14px;
+/* Responsividade */
+@media (max-width: 768px) {
+    .container {
+        margin-left: 0;
+    }
+    .info-vendas {
+        grid-template-columns: 1fr;
+    }
+    .chart-card, .table-card {
+        width: 100%;
+    }
 }
 </style>
